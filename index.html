@@ -1,422 +1,313 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     >
 
-    <meta
-        name="theme-color"
-        content="#111111"
-    >
-
     <title>MAFIA ROOM</title>
 
-    <!-- Telegram Mini App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <link rel="stylesheet" href="style.css">
-
 </head>
-
 
 <body>
 
 <div class="app">
 
-
-    <!-- ========================================= -->
-    <!-- ЭКРАН 1. СОЗДАНИЕ ИГРЫ -->
-    <!-- ========================================= -->
-
-    <section
-        id="screen-start"
-        class="screen active"
-    >
+    <!-- START -->
+    <section id="screen-start" class="screen active">
 
         <div class="logo">
-            MAFIA ROOM
+            <div class="logo-title">MAFIA</div>
+            <div class="logo-subtitle">ROOM</div>
         </div>
 
-        <div class="subtitle">
-            Цифровой ведущий игры
+        <div class="description">
+            Управление игрой и статистика партии
         </div>
-
 
         <div class="card">
-
-            <h2>
-                Создание игры
-            </h2>
-
 
             <label for="playerCount">
                 Количество игроков
             </label>
 
-
             <select id="playerCount">
-
-                <option value="4">
-                    4 игрока
-                </option>
-
-                <option value="5">
-                    5 игроков
-                </option>
-
-                <option value="6">
-                    6 игроков
-                </option>
-
-                <option value="7">
-                    7 игроков
-                </option>
-
-                <option value="8" selected>
-                    8 игроков
-                </option>
-
-                <option value="9">
-                    9 игроков
-                </option>
-
-                <option value="10">
-                    10 игроков
-                </option>
-
-                <option value="11">
-                    11 игроков
-                </option>
-
-                <option value="12">
-                    12 игроков
-                </option>
-
-                <option value="13">
-                    13 игроков
-                </option>
-
-                <option value="14">
-                    14 игроков
-                </option>
-
-                <option value="15">
-                    15 игроков
-                </option>
-
+                <option value="6">6 игроков</option>
+                <option value="7">7 игроков</option>
+                <option value="8">8 игроков</option>
+                <option value="9">9 игроков</option>
+                <option value="10">10 игроков</option>
+                <option value="11">11 игроков</option>
+                <option value="12">12 игроков</option>
+                <option value="13">13 игроков</option>
+                <option value="14">14 игроков</option>
+                <option value="15">15 игроков</option>
             </select>
-
-
-            <button id="btnCreatePlayers">
-                Далее
-            </button>
 
         </div>
 
-    </section>
-
-
-
-    <!-- ========================================= -->
-    <!-- ЭКРАН 2. ИМЕНА ИГРОКОВ -->
-    <!-- ========================================= -->
-
-    <section
-        id="screen-names"
-        class="screen"
-    >
-
-        <header>
-
-            <button
-                class="back"
-                data-back="screen-start"
-            >
-                ←
-            </button>
-
-
-            <div>
-
-                <div class="page-title">
-                    Игроки
-                </div>
-
-                <div class="page-subtitle">
-                    Введите имена участников
-                </div>
-
-            </div>
-
-        </header>
-
-
-        <div id="namesContainer"></div>
-
-
-        <div
-            id="namesError"
-            class="error"
-        ></div>
-
-
-        <button id="btnToRoles">
+        <button id="btnCreatePlayers" class="btn primary">
             Далее
         </button>
 
     </section>
 
 
+    <!-- NAMES -->
+    <section id="screen-names" class="screen">
 
-    <!-- ========================================= -->
-    <!-- ЭКРАН 3. РОЛИ -->
-    <!-- ========================================= -->
-
-    <section
-        id="screen-roles"
-        class="screen"
-    >
-
-        <header>
-
-            <button
-                class="back"
-                data-back="screen-names"
-            >
-                ←
-            </button>
-
+        <div class="topbar">
+            <button class="back-btn" data-back>←</button>
 
             <div>
-
-                <div class="page-title">
-                    Роли
+                <div class="topbar-title">Игроки</div>
+                <div class="topbar-subtitle">
+                    Введите имена участников
                 </div>
+            </div>
+        </div>
 
-                <div class="page-subtitle">
+        <div id="namesContainer"></div>
+
+        <div id="namesError" class="error"></div>
+
+        <button id="btnToRoles" class="btn primary">
+            Далее
+        </button>
+
+    </section>
+
+
+    <!-- ROLES -->
+    <section id="screen-roles" class="screen">
+
+        <div class="topbar">
+            <button class="back-btn" data-back>←</button>
+
+            <div>
+                <div class="topbar-title">Роли</div>
+                <div class="topbar-subtitle">
                     Состав партии
                 </div>
-
             </div>
-
-        </header>
-
+        </div>
 
         <div id="rolesContainer"></div>
 
-
-        <button id="btnStartGame">
+        <button id="btnStartGame" class="btn primary">
             Начать игру
         </button>
 
     </section>
 
 
+    <!-- GAME -->
+    <section id="screen-game" class="screen">
 
-    <!-- ========================================= -->
-    <!-- ЭКРАН 4. ИГРА -->
-    <!-- ========================================= -->
-
-    <section
-        id="screen-game"
-        class="screen"
-    >
-
-        <header>
+        <div class="topbar">
 
             <div>
-
-                <div class="logo small">
-                    MAFIA ROOM
+                <div class="topbar-title">MAFIA ROOM</div>
+                <div class="topbar-subtitle">
+                    Текущая игра
                 </div>
-
-                <div class="page-subtitle">
-                    Игра идёт
-                </div>
-
             </div>
 
-        </header>
+        </div>
 
 
-        <!-- Статистика -->
-
+        <!-- СТАТИСТИКА -->
         <div class="stats">
 
-
-            <div>
-
-                <strong id="totalCount">
-                    0
-                </strong>
-
-                <span>
-                    Всего
-                </span>
-
+            <div class="stat">
+                <div id="statTotal">0</div>
+                <span>Всего</span>
             </div>
 
-
-            <div>
-
-                <strong id="aliveCount">
-                    0
-                </strong>
-
-                <span>
-                    В игре
-                </span>
-
+            <div class="stat">
+                <div id="statAlive">0</div>
+                <span>Живых</span>
             </div>
 
-
-            <div>
-
-                <strong id="deadCount">
-                    0
-                </strong>
-
-                <span>
-                    Выбыли
-                </span>
-
+            <div class="stat">
+                <div id="statDead">0</div>
+                <span>Выбыло</span>
             </div>
-
 
         </div>
 
 
+        <!-- УПРАВЛЕНИЕ -->
+        <div class="section-title">
+            Управление
+        </div>
 
-        <!-- Список игроков -->
+        <div class="management-buttons">
 
-        <div class="card">
+            <button id="btnAddInteraction" class="btn secondary">
+                + Взаимодействие
+            </button>
 
-            <h2>
-                Игроки
-            </h2>
-
-            <div id="playersContainer"></div>
+            <button id="btnResetVotes" class="btn secondary">
+                Сбросить голоса
+            </button>
 
         </div>
 
 
-
-        <!-- История -->
-
-        <div class="card">
-
-            <h2>
-                История
-            </h2>
-
-            <div id="eventsContainer"></div>
-
+        <!-- ИГРОКИ -->
+        <div class="section-title">
+            Игроки
         </div>
 
+        <div id="playersContainer"></div>
 
 
-        <button
-            id="btnEndGame"
-            class="danger"
-        >
+        <!-- ИСТОРИЯ -->
+        <div class="section-title">
+            История
+        </div>
+
+        <div id="historyContainer"></div>
+
+
+        <!-- СТАТИСТИКА ВЗАИМОДЕЙСТВИЙ -->
+        <div class="section-title">
+            Статистика взаимодействий
+        </div>
+
+        <div id="interactionStats"></div>
+
+
+        <button id="btnFinishGame" class="btn danger">
             Завершить игру
         </button>
 
     </section>
 
 
-
-    <!-- ========================================= -->
-    <!-- ЭКРАН 5. ПОБЕДИТЕЛЬ -->
-    <!-- ========================================= -->
-
-    <section
-        id="screen-winner"
-        class="screen"
-    >
+    <!-- WINNER -->
+    <section id="screen-winner" class="screen">
 
         <div class="winner">
 
-
-            <div class="winner-mark">
-                ✓
+            <div class="winner-label">
+                ИГРА ОКОНЧЕНА
             </div>
 
+            <h1 id="winnerTitle"></h1>
 
-            <h1 id="winnerTitle">
-            </h1>
-
-
-            <p id="winnerSubtitle">
-            </p>
-
-
-            <button id="btnResults">
-                Посмотреть результаты
-            </button>
-
-
-            <button
-                id="btnNewGame"
-                class="secondary"
-            >
-                Новая игра
-            </button>
-
+            <p id="winnerSubtitle"></p>
 
         </div>
 
-    </section>
+        <button id="btnResults" class="btn primary">
+            Посмотреть результаты
+        </button>
 
-
-
-    <!-- ========================================= -->
-    <!-- ЭКРАН 6. РЕЗУЛЬТАТЫ -->
-    <!-- ========================================= -->
-
-    <section
-        id="screen-results"
-        class="screen"
-    >
-
-        <header>
-
-            <div>
-
-                <div class="page-title">
-                    Результаты
-                </div>
-
-                <div class="page-subtitle">
-                    Роли всех игроков
-                </div>
-
-            </div>
-
-        </header>
-
-
-        <div id="resultsContainer"></div>
-
-
-        <button id="btnNewGame2">
+        <button id="btnNewGame" class="btn secondary">
             Новая игра
         </button>
 
     </section>
 
 
-</div>
+    <!-- RESULTS -->
+    <section id="screen-results" class="screen">
 
+        <div class="topbar">
+
+            <div>
+                <div class="topbar-title">
+                    Результаты
+                </div>
+
+                <div class="topbar-subtitle">
+                    Итоги партии
+                </div>
+            </div>
+
+        </div>
+
+        <div id="resultsContainer"></div>
+
+        <div class="section-title">
+            Статистика взаимодействий
+        </div>
+
+        <div id="resultsInteractionStats"></div>
+
+        <button id="btnNewGameFromResults" class="btn primary">
+            Новая игра
+        </button>
+
+    </section>
+
+
+    <!-- INTERACTION MODAL -->
+    <div id="interactionModal" class="modal">
+
+        <div class="modal-card">
+
+            <div class="modal-title">
+                Новое взаимодействие
+            </div>
+
+            <label>
+                Кто?
+            </label>
+
+            <select id="interactionActor"></select>
+
+
+            <label>
+                С кем?
+            </label>
+
+            <select id="interactionTarget"></select>
+
+
+            <label>
+                Что произошло?
+            </label>
+
+            <input
+                type="text"
+                id="interactionDescription"
+                placeholder="Например: голосование"
+            >
+
+
+            <div class="modal-buttons">
+
+                <button
+                    id="btnCancelInteraction"
+                    class="btn secondary"
+                >
+                    Отмена
+                </button>
+
+                <button
+                    id="btnSaveInteraction"
+                    class="btn primary"
+                >
+                    Сохранить
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
 
 <script src="app.js"></script>
 
 </body>
-
 </html>
