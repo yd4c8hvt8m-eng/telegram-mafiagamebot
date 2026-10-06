@@ -1,1302 +1,1393 @@
-/*
-==================================================
-MAFIA ROOM
-Telegram Mini App
-
-Язык приложения: русский
-
-Версия: 1.0
-==================================================
-*/
-
-
-/* ==================================================
-   TELEGRAM MINI APP
-================================================== */
-
 const tg = window.Telegram?.WebApp;
 
-
 if (tg) {
-
     tg.ready();
-
     tg.expand();
-
 }
 
 
-/* ==================================================
-   СОСТОЯНИЕ ИГРЫ
-================================================== */
+/* =========================
+   GAME STATE
+========================= */
 
 const game = {
-
     players: [],
-
     events: [],
-
+    interactions: [],
     winner: null,
-
-    started: false,
-
-    mafiaCount: 0
-
+    started: false
 };
 
 
-/* ==================================================
-   ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ DOM
-================================================== */
+/* =========================
+   HELPERS
+========================= */
 
-function $(id) {
+const $ = (id) => document.getElementById(id);
 
-    return document.getElementById(id);
-
-}
-
-
-/* ==================================================
-   ПЕРЕКЛЮЧЕНИЕ ЭКРАНА
-================================================== */
 
 function showScreen(screenId) {
 
-    document
-        .querySelectorAll(".screen")
-        .forEach(
-            screen => {
-
-                screen.classList.remove(
-                    "active"
-                );
-
-            }
-        );
-
-
-    $(screenId)
-        .classList.add("active");
-
-
-    window.scrollTo({
-
-        top: 0,
-
-        behavior: "smooth"
-
+    document.querySelectorAll(".screen").forEach(screen => {
+        screen.classList.remove("active");
     });
 
+    $(screenId).classList.add("active");
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
 }
 
-
-/* ==================================================
-   ЗАЩИТА ОТ HTML
-================================================== */
 
 function escapeHtml(value) {
 
-    const div =
-        document.createElement("div");
-
-
-    div.textContent =
-        value;
-
-
-    return div.innerHTML;
-
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 }
 
 
-/* ==================================================
-   ЭКРАН 1
-   ВЫБОР КОЛИЧЕСТВА ИГРОКОВ
-================================================== */
+/* =========================
+   ROLES
+========================= */
+
+function getRoleName(role) {
+
+    const roles = {
+        mafia: "Мафия",
+        commissioner: "Комиссар",
+        doctor: "Доктор",
+        civilian: "Мирный"
+    };
+
+    return roles[role] || "Роль не назначена";
+}
+
+
+function getRoleOptions(selectedRole) {
+
+    const roles = [
+        ["mafia", "Мафия"],
+        ["commissioner", "Комиссар"],
+        ["doctor", "Доктор"],
+        ["civilian", "Мирный"]
+    ];
+
+    return roles.map(([value, name]) => {
+
+        return `
+            <option
+                value="${value}"
+                ${selectedRole === value ? "selected" : ""}
+            >
+                ${name}
+            </option>
+        `;
+
+    }).join("");
+}
+
+
+/* =========================
+   CREATE PLAYERS
+========================= */
 
 function createPlayers() {
 
-    const count =
-        Number(
-            $("playerCount").value
-        );
+    const count = Number($("playerCount").value);
+
+    if (count < 6 || count > 15) {
+
+        alert("Количество игроков должно быть от 6 до 15.");
+
+        return;
+    }
 
 
-    const container =
-        $("namesContainer");
-
+    const container = $("namesContainer");
 
     container.innerHTML = "";
 
 
-    /*
-    Создаём поля для каждого игрока
-    */
+    for (let i = 0; i < count; i++) {
 
-    for (
-        let i = 0;
-        i < count;
-        i++
-    ) {
+        container.innerHTML += `
 
-        const card =
-            document.createElement(
-                "div"
-            );
+            <div class="card">
 
+                <label>
+                    Игрок ${i + 1}
+                </label>
 
-        card.className =
-            "card";
+                <input
+                    type="text"
+                    class="player-name-input"
+                    data-player-index="${i}"
+                    placeholder="Введите имя"
+                    autocomplete="off"
+                >
 
-
-        card.innerHTML = `
-
-            <label
-                for="player-${i}"
-            >
-
-                Игрок ${i + 1}
-
-            </label>
-
-
-            <input
-                id="player-${i}"
-                class="player-input"
-                type="text"
-                maxlength="40"
-                placeholder="Введите имя"
-                autocomplete="off"
-            >
+            </div>
 
         `;
-
-
-        container.appendChild(
-            card
-        );
-
     }
 
 
-    $("namesError")
-        .textContent = "";
+    $("namesError").textContent = "";
 
-
-    showScreen(
-        "screen-names"
-    );
-
+    showScreen("screen-names");
 }
 
 
-/* ==================================================
-   ЭКРАН 2
-   ПОЛУЧЕНИЕ ИМЁН
-================================================== */
+/* =========================
+   NAMES → ROLES
+========================= */
 
 function goToRoles() {
 
     const inputs =
-        document.querySelectorAll(
-            "#namesContainer input"
-        );
+        document.querySelectorAll(".player-name-input");
 
+    const names = [];
 
-    const names =
-        [...inputs]
-            .map(
-                input =>
-                    input.value.trim()
-            );
+    for (const input of inputs) {
 
+        const name = input.value.trim();
 
-    /*
-    Проверка пустых имён
-    */
+        if (!name) {
 
-    if (
-        names.some(
-            name => !name
-        )
-    ) {
+            $("namesError").textContent =
+                "Заполните имена всех игроков.";
 
-        $("namesError")
-            .textContent =
-            "Заполните имена всех игроков.";
+            return;
+        }
 
-        return;
-
+        names.push(name);
     }
 
 
-    /*
-    Проверка одинаковых имён
-    */
+    const normalizedNames =
+        names.map(name => name.toLowerCase());
+
 
     const uniqueNames =
-        new Set(
-            names.map(
-                name =>
-                    name.toLowerCase()
-            )
-        );
+        new Set(normalizedNames);
 
 
-    if (
-        uniqueNames.size !==
-        names.length
-    ) {
+    if (uniqueNames.size !== names.length) {
 
-        $("namesError")
-            .textContent =
+        $("namesError").textContent =
             "Имена игроков должны отличаться.";
 
         return;
-
     }
 
 
-    const count =
-        names.length;
+    const count = names.length;
 
 
     /*
-    ==============================================
-    ОПРЕДЕЛЯЕМ КОЛИЧЕСТВО МАФИИ
-    ==============================================
+        Количество мафии:
 
-    4–6 игроков
-    1 мафия
-
-    7–10 игроков
-    2 мафии
-
-    11–15 игроков
-    3 мафии
+        6–7 игроков  → 1
+        8–11 игроков → 2
+        12–15 игроков → 3
     */
 
-    if (
-        count >= 11
+    let mafiaCount = 1;
+
+    if (count >= 8) {
+        mafiaCount = 2;
+    }
+
+    if (count >= 12) {
+        mafiaCount = 3;
+    }
+
+
+    game.players = names.map((name, index) => {
+
+        return {
+            id: index + 1,
+            name,
+            role: null,
+            alive: true,
+
+            votes: 0,
+
+            eliminatedAt: null,
+            eliminationReason: null
+        };
+
+    });
+
+
+    renderRoles(mafiaCount);
+
+    showScreen("screen-roles");
+}
+
+
+/* =========================
+   ROLES SCREEN
+========================= */
+
+function renderRoles(mafiaCount) {
+
+    const count = game.players.length;
+
+    const civilians =
+        count - mafiaCount - 2;
+
+
+    $("rolesContainer").innerHTML = `
+
+        <div class="card">
+
+            <div class="role-row">
+                <span>Мафия</span>
+                <strong>${mafiaCount}</strong>
+            </div>
+
+            <div class="role-row">
+                <span>Комиссар</span>
+                <strong>1</strong>
+            </div>
+
+            <div class="role-row">
+                <span>Доктор</span>
+                <strong>1</strong>
+            </div>
+
+            <div class="role-row">
+                <span>Мирные жители</span>
+                <strong>${civilians}</strong>
+            </div>
+
+        </div>
+
+    `;
+}
+
+
+/* =========================
+   SHUFFLE
+========================= */
+
+function shuffle(array) {
+
+    const result = [...array];
+
+    for (
+        let i = result.length - 1;
+        i > 0;
+        i--
     ) {
 
-        game.mafiaCount = 3;
+        const j =
+            Math.floor(Math.random() * (i + 1));
 
+        [result[i], result[j]] =
+            [result[j], result[i]];
     }
 
-    else if (
-        count >= 7
-    ) {
+    return result;
+}
 
-        game.mafiaCount = 2;
 
+/* =========================
+   ASSIGN ROLES
+========================= */
+
+function assignRoles() {
+
+    const count = game.players.length;
+
+    let mafiaCount = 1;
+
+    if (count >= 8) {
+        mafiaCount = 2;
     }
 
-    else {
-
-        game.mafiaCount = 1;
-
+    if (count >= 12) {
+        mafiaCount = 3;
     }
 
 
-    /*
-    Создаём игроков
-    */
+    const roles = [];
 
-    game.players =
-        names.map(
-            (name, index) => {
 
-                return {
+    for (let i = 0; i < mafiaCount; i++) {
+        roles.push("mafia");
+    }
 
-                    id:
-                        index + 1,
 
-                    name:
-                        name,
+    roles.push("commissioner");
+    roles.push("doctor");
 
-                    /*
-                    Системное значение роли.
 
-                    Важно:
-                    здесь не хранится
-                    "Мафия" или "Доктор".
+    while (roles.length < count) {
+        roles.push("civilian");
+    }
 
-                    Здесь хранится:
-                    mafia
-                    commissioner
-                    doctor
-                    civilian
-                    */
 
-                    role:
-                        null,
+    const shuffledRoles = shuffle(roles);
 
-                    alive:
-                        true,
 
-                    eliminatedAt:
-                        null,
+    game.players.forEach((player, index) => {
 
-                    eliminationReason:
-                        null
+        player.role =
+            shuffledRoles[index];
 
-                };
+    });
+}
 
+
+/* =========================
+   START GAME
+========================= */
+
+function startGame() {
+
+    assignRoles();
+
+    game.events = [];
+    game.interactions = [];
+    game.winner = null;
+    game.started = true;
+
+
+    game.players.forEach(player => {
+
+        player.alive = true;
+        player.votes = 0;
+        player.eliminatedAt = null;
+        player.eliminationReason = null;
+
+    });
+
+
+    addEvent("Игра началась.");
+
+    renderGame();
+
+    showScreen("screen-game");
+}
+
+
+/* =========================
+   ROLE CHANGE
+========================= */
+
+function changePlayerRole(playerId, newRole) {
+
+    const player =
+        game.players.find(p => p.id === playerId);
+
+    if (!player) {
+        return;
+    }
+
+
+    const oldRole = player.role;
+
+
+    if (oldRole === newRole) {
+        return;
+    }
+
+
+    player.role = newRole;
+
+
+    addEvent(
+        `Роль игрока "${player.name}" изменена: ` +
+        `${getRoleName(oldRole)} → ${getRoleName(newRole)}.`
+    );
+
+
+    renderGame();
+}
+
+
+/* =========================
+   EVENTS
+========================= */
+
+function addEvent(text) {
+
+    const time =
+        new Date().toLocaleTimeString(
+            "ru-RU",
+            {
+                hour: "2-digit",
+                minute: "2-digit"
             }
         );
 
 
-    /*
-    Показываем состав ролей
-    */
-
-    renderRoles();
-
-
-    showScreen(
-        "screen-roles"
-    );
-
+    game.events.unshift({
+        time,
+        text
+    });
 }
 
 
-/* ==================================================
-   СОСТАВ РОЛЕЙ
-================================================== */
+/* =========================
+   RENDER GAME
+========================= */
 
-function renderRoles() {
+function renderGame() {
 
-    const count =
+    const alivePlayers =
+        game.players.filter(player => player.alive);
+
+    const deadPlayers =
+        game.players.filter(player => !player.alive);
+
+
+    $("statTotal").textContent =
         game.players.length;
 
+    $("statAlive").textContent =
+        alivePlayers.length;
 
-    const civilians =
-        count -
-        game.mafiaCount -
-        2;
+    $("statDead").textContent =
+        deadPlayers.length;
 
 
-    $("rolesContainer")
-        .innerHTML = `
+    const container =
+        $("playersContainer");
 
-            <div class="role-box">
+    container.innerHTML = "";
 
-                <div class="role-name">
-                    Мафия
+
+    game.players.forEach(player => {
+
+        const statusText =
+            player.alive
+                ? "В игре"
+                : "Выбыл";
+
+
+        const statusClass =
+            player.alive
+                ? ""
+                : "dead";
+
+
+        container.innerHTML += `
+
+            <div class="player-card">
+
+                <div class="player-header">
+
+                    <div>
+
+                        <div class="player-name">
+                            ${escapeHtml(player.name)}
+                        </div>
+
+                        <div class="player-role">
+                            ${getRoleName(player.role)}
+                        </div>
+
+                    </div>
+
+                    <div class="player-status ${statusClass}">
+                        ${statusText}
+                    </div>
+
                 </div>
 
-                <div class="role-count">
-                    ${game.mafiaCount}
+
+                <select
+                    class="role-select"
+                    data-role-player="${player.id}"
+                >
+
+                    ${getRoleOptions(player.role)}
+
+                </select>
+
+
+                <div class="vote-block">
+
+                    <div class="vote-title">
+                        Голоса
+                    </div>
+
+                    <div class="vote-controls">
+
+                        <button
+                            class="vote-btn"
+                            data-vote-minus="${player.id}"
+                        >
+                            −
+                        </button>
+
+                        <div class="vote-number">
+                            ${player.votes}
+                        </div>
+
+                        <button
+                            class="vote-btn"
+                            data-vote-plus="${player.id}"
+                        >
+                            +
+                        </button>
+
+                    </div>
+
                 </div>
 
-            </div>
 
+                <div class="player-controls">
 
-            <div class="role-box">
+                    ${
+                        player.alive
+                        ?
+                        `
+                            <button
+                                class="btn danger"
+                                data-eliminate="${player.id}"
+                            >
+                                Вывести
+                            </button>
+                        `
+                        :
+                        `
+                            <button
+                                class="btn secondary"
+                                data-return="${player.id}"
+                            >
+                                Вернуть
+                            </button>
+                        `
+                    }
 
-                <div class="role-name">
-                    Комиссар
-                </div>
+                    <button
+                        class="btn secondary"
+                        data-player-interaction="${player.id}"
+                    >
+                        Взаимодействия
+                    </button>
 
-                <div class="role-count">
-                    1
-                </div>
-
-            </div>
-
-
-            <div class="role-box">
-
-                <div class="role-name">
-                    Доктор
-                </div>
-
-                <div class="role-count">
-                    1
-                </div>
-
-            </div>
-
-
-            <div class="role-box">
-
-                <div class="role-name">
-                    Мирные жители
-                </div>
-
-                <div class="role-count">
-                    ${civilians}
                 </div>
 
             </div>
 
         `;
-
-}
-
-
-/* ==================================================
-   ПЕРЕМЕШИВАНИЕ МАССИВА
-================================================== */
-
-function shuffle(array) {
-
-    const result =
-        [...array];
-
-
-    for (
-        let i =
-            result.length - 1;
-
-        i > 0;
-
-        i--
-    ) {
-
-        const j =
-            Math.floor(
-                Math.random() *
-                (i + 1)
-            );
-
-
-        [
-            result[i],
-            result[j]
-        ] =
-        [
-            result[j],
-            result[i]
-        ];
-
-    }
-
-
-    return result;
-
-}
-
-
-/* ==================================================
-   НАЗНАЧЕНИЕ РОЛЕЙ
-================================================== */
-
-function assignRoles() {
-
-    let roles = [];
-
-
-    /*
-    Добавляем мафию
-    */
-
-    for (
-        let i = 0;
-        i < game.mafiaCount;
-        i++
-    ) {
-
-        roles.push(
-            "mafia"
-        );
-
-    }
-
-
-    /*
-    Добавляем комиссара
-    */
-
-    roles.push(
-        "commissioner"
-    );
-
-
-    /*
-    Добавляем доктора
-    */
-
-    roles.push(
-        "doctor"
-    );
-
-
-    /*
-    Остальные игроки —
-    мирные
-    */
-
-    while (
-        roles.length <
-        game.players.length
-    ) {
-
-        roles.push(
-            "civilian"
-        );
-
-    }
-
-
-    /*
-    Перемешиваем роли
-    */
-
-    roles =
-        shuffle(roles);
-
-
-    /*
-    Назначаем роли игрокам
-    */
-
-    game.players
-        .forEach(
-            (
-                player,
-                index
-            ) => {
-
-                player.role =
-                    roles[index];
-
-            }
-        );
-
-}
-
-
-/* ==================================================
-   ПОЛУЧИТЬ НАЗВАНИЕ РОЛИ
-================================================== */
-
-function getRoleName(role) {
-
-    switch (role) {
-
-        case "mafia":
-
-            return "Мафия";
-
-
-        case "commissioner":
-
-            return "Комиссар";
-
-
-        case "doctor":
-
-            return "Доктор";
-
-
-        case "civilian":
-
-            return "Мирный";
-
-
-        default:
-
-            return "Неизвестно";
-
-    }
-
-}
-
-
-/* ==================================================
-   ДОБАВИТЬ СОБЫТИЕ
-================================================== */
-
-function addEvent(text) {
-
-    game.events.unshift({
-
-        time:
-            new Date()
-                .toLocaleTimeString(
-                    "ru-RU",
-                    {
-                        hour:
-                            "2-digit",
-
-                        minute:
-                            "2-digit"
-                    }
-                ),
-
-        text:
-            text
-
     });
 
+
+    renderHistory();
+    renderInteractionStats();
+
+
+    /*
+        Обработчики изменения ролей
+    */
+
+    document
+        .querySelectorAll("[data-role-player]")
+        .forEach(select => {
+
+            select.addEventListener(
+                "change",
+                () => {
+
+                    const playerId =
+                        Number(select.dataset.rolePlayer);
+
+                    changePlayerRole(
+                        playerId,
+                        select.value
+                    );
+
+                }
+            );
+
+        });
+
+
+    /*
+        Добавление голоса
+    */
+
+    document
+        .querySelectorAll("[data-vote-plus]")
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const playerId =
+                        Number(button.dataset.votePlus);
+
+                    changeVotes(playerId, 1);
+
+                }
+            );
+
+        });
+
+
+    /*
+        Уменьшение голоса
+    */
+
+    document
+        .querySelectorAll("[data-vote-minus]")
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const playerId =
+                        Number(button.dataset.voteMinus);
+
+                    changeVotes(playerId, -1);
+
+                }
+            );
+
+        });
+
+
+    /*
+        Выведение игрока
+    */
+
+    document
+        .querySelectorAll("[data-eliminate]")
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const playerId =
+                        Number(button.dataset.eliminate);
+
+                    eliminatePlayer(playerId);
+
+                }
+            );
+
+        });
+
+
+    /*
+        Возвращение игрока
+    */
+
+    document
+        .querySelectorAll("[data-return]")
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const playerId =
+                        Number(button.dataset.return);
+
+                    returnPlayer(playerId);
+
+                }
+            );
+
+        });
+
+
+    /*
+        Взаимодействия игрока
+    */
+
+    document
+        .querySelectorAll("[data-player-interaction]")
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const playerId =
+                        Number(
+                            button.dataset.playerInteraction
+                        );
+
+                    openInteractionModal(playerId);
+
+                }
+            );
+
+        });
 }
 
 
-/* ==================================================
-   НАЧАЛО ИГРЫ
-================================================== */
-
-function startGame() {
-
-    /*
-    Распределяем роли
-    */
-
-    assignRoles();
-
-
-    /*
-    Очищаем историю
-    */
-
-    game.events = [];
-
-
-    /*
-    Сбрасываем победителя
-    */
-
-    game.winner = null;
-
-
-    /*
-    Меняем состояние
-    */
-
-    game.started = true;
-
-
-    /*
-    Записываем событие
-    */
-
-    addEvent(
-        "Игра началась."
-    );
-
-
-    /*
-    Отрисовываем игру
-    */
-
-    renderGame();
-
-
-    /*
-    Переходим на экран игры
-    */
-
-    showScreen(
-        "screen-game"
-    );
-
-}
-
-
-/* ==================================================
-   ОТРИСОВКА ИГРЫ
-================================================== */
-
-function renderGame() {
-
-    /*
-    Получаем живых игроков
-    */
-
-    const alivePlayers =
-        game.players.filter(
-            player =>
-                player.alive
-        );
-
-
-    /*
-    Статистика
-    */
-
-    $("totalCount")
-        .textContent =
-        game.players.length;
-
-
-    $("aliveCount")
-        .textContent =
-        alivePlayers.length;
-
-
-    $("deadCount")
-        .textContent =
-        game.players.length -
-        alivePlayers.length;
-
-
-    /*
-    ==============================================
-    СПИСОК ИГРОКОВ
-    ==============================================
-    */
-
-    $("playersContainer")
-        .innerHTML =
-
-        game.players
-            .map(
-                player => `
-
-                    <div class="player">
-
-
-                        <div class="player-info">
-
-
-                            <div class="player-name">
-
-                                ${
-                                    escapeHtml(
-                                        player.name
-                                    )
-                                }
-
-                            </div>
-
-
-                            <div class="player-role">
-
-                                Роль:
-                                ${
-                                    getRoleName(
-                                        player.role
-                                    )
-                                }
-
-                            </div>
-
-
-                            <div
-                                class="
-                                    status
-                                    ${
-                                        player.alive
-                                            ? "alive"
-                                            : "dead"
-                                    }
-                                "
-                            >
-
-                                ${
-                                    player.alive
-
-                                        ? "● В игре"
-
-                                        : "☠ Выбыл"
-                                }
-
-                            </div>
-
-
-                        </div>
-
-
-                        ${
-                            player.alive
-
-                                ? `
-
-                                    <button
-                                        class="danger"
-                                        onclick="
-                                            eliminatePlayer(
-                                                ${player.id}
-                                            )
-                                        "
-                                    >
-
-                                        Вывести
-
-                                    </button>
-
-                                `
-
-                                : ""
-                        }
-
-
-                    </div>
-
-                `
-            )
-            .join("");
-
-
-    /*
-    ==============================================
-    ИСТОРИЯ
-    ==============================================
-    */
-
-    if (
-        game.events.length > 0
-    ) {
-
-        $("eventsContainer")
-            .innerHTML =
-
-            game.events
-                .map(
-                    event => `
-
-                        <div class="event">
-
-                            <strong>
-                                ${event.time}
-                            </strong>
-
-                            —
-
-                            ${
-                                escapeHtml(
-                                    event.text
-                                )
-                            }
-
-                        </div>
-
-                    `
-                )
-                .join("");
-
-    }
-
-    else {
-
-        $("eventsContainer")
-            .innerHTML = `
-
-                <div class="event">
-
-                    Событий пока нет
-
-                </div>
-
-            `;
-
-    }
-
-}
-
-
-/* ==================================================
-   ВЫБЫТИЕ ИГРОКА
-================================================== */
-
-function eliminatePlayer(id) {
+/* =========================
+   VOTES
+========================= */
+
+function changeVotes(playerId, amount) {
 
     const player =
-        game.players.find(
-            p =>
-                p.id === id
-        );
-
-
-    /*
-    Игрок не найден
-    */
+        game.players.find(p => p.id === playerId);
 
     if (!player) {
-
         return;
-
     }
 
 
-    /*
-    Игрок уже выбыл
-    */
+    player.votes += amount;
 
-    if (!player.alive) {
 
-        return;
-
+    if (player.votes < 0) {
+        player.votes = 0;
     }
 
 
-    /*
-    Спрашиваем причину
-    */
+    renderGame();
+}
+
+
+function resetVotes() {
+
+    game.players.forEach(player => {
+        player.votes = 0;
+    });
+
+
+    addEvent("Голоса сброшены.");
+
+    renderGame();
+}
+
+
+/* =========================
+   ELIMINATION
+========================= */
+
+function eliminatePlayer(playerId) {
+
+    const player =
+        game.players.find(p => p.id === playerId);
+
+    if (!player || !player.alive) {
+        return;
+    }
+
 
     const reason =
         prompt(
-
             `Причина выбытия игрока "${player.name}"?`,
-
             "Голосование"
-
         );
 
 
-    /*
-    Пользователь нажал Отмена
-    */
-
-    if (
-        reason === null
-    ) {
-
+    if (reason === null) {
         return;
-
     }
 
 
-    /*
-    Меняем состояние игрока
-    */
-
-    player.alive =
-        false;
-
-
-    /*
-    Сохраняем время
-    */
+    player.alive = false;
 
     player.eliminatedAt =
-        new Date()
-            .toISOString();
-
-
-    /*
-    Сохраняем причину
-    */
+        new Date().toISOString();
 
     player.eliminationReason =
-        reason ||
-        "Причина не указана";
+        reason.trim() || "Не указано";
 
-
-    /*
-    Записываем событие
-    */
 
     addEvent(
-
         `${player.name} выбыл. ` +
         `Причина: ${player.eliminationReason}`
-
     );
 
-
-    /*
-    Проверяем победу
-    */
 
     const winner =
         checkWinner();
 
 
-    /*
-    Если игра закончилась
-    */
-
     if (winner) {
 
-        finishGame(
-            winner
-        );
+        finishGame(winner);
 
         return;
-
     }
 
 
-    /*
-    Иначе продолжаем игру
-    */
-
     renderGame();
-
 }
 
 
-/* ==================================================
-   ПРОВЕРКА ПОБЕДИТЕЛЯ
-================================================== */
+/* =========================
+   RETURN PLAYER
+========================= */
+
+function returnPlayer(playerId) {
+
+    const player =
+        game.players.find(p => p.id === playerId);
+
+    if (!player || player.alive) {
+        return;
+    }
+
+
+    const confirmed =
+        confirm(
+            `Вернуть игрока "${player.name}" в игру?`
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    player.alive = true;
+    player.eliminatedAt = null;
+    player.eliminationReason = null;
+
+
+    addEvent(
+        `${player.name} возвращён в игру.`
+    );
+
+
+    game.winner = null;
+    game.started = true;
+
+
+    renderGame();
+}
+
+
+/* =========================
+   WINNER CHECK
+========================= */
 
 function checkWinner() {
 
+    const alive =
+        game.players.filter(
+            player => player.alive
+        );
+
+
+    const mafia =
+        alive.filter(
+            player => player.role === "mafia"
+        ).length;
+
+
+    const nonMafia =
+        alive.filter(
+            player => player.role !== "mafia"
+        ).length;
+
+
     /*
-    Все живые игроки
+        Если мафии больше нет —
+        победили мирные.
     */
 
-    const alivePlayers =
-        game.players.filter(
-            player =>
-                player.alive
+    if (mafia === 0) {
+        return "civilians";
+    }
+
+
+    /*
+        Если мафия получила большинство
+        или равенство — победила мафия.
+    */
+
+    if (mafia >= nonMafia) {
+        return "mafia";
+    }
+
+
+    return null;
+}
+
+
+/* =========================
+   FINISH GAME
+========================= */
+
+function finishGame(winner) {
+
+    game.winner = winner;
+    game.started = false;
+
+
+    addEvent("Игра окончена.");
+
+
+    if (winner === "mafia") {
+
+        $("winnerTitle").textContent =
+            "МАФИЯ ПОБЕДИЛА";
+
+        $("winnerSubtitle").textContent =
+            "Мафия получила контроль над игрой.";
+
+    } else {
+
+        $("winnerTitle").textContent =
+            "МИРНЫЕ ПОБЕДИЛИ";
+
+        $("winnerSubtitle").textContent =
+            "Все игроки мафии были устранены.";
+    }
+
+
+    showScreen("screen-winner");
+}
+
+
+/* =========================
+   HISTORY
+========================= */
+
+function renderHistory() {
+
+    const container =
+        $("historyContainer");
+
+
+    if (!game.events.length) {
+
+        container.innerHTML =
+            `<div class="empty-state">
+                История пока пуста.
+            </div>`;
+
+        return;
+    }
+
+
+    container.innerHTML =
+        game.events.map(event => {
+
+            return `
+                <div class="history-item">
+
+                    <span>
+                        ${event.time}
+                    </span>
+
+                    <div>
+                        ${escapeHtml(event.text)}
+                    </div>
+
+                </div>
+            `;
+
+        }).join("");
+}
+
+
+/* =========================
+   INTERACTIONS
+========================= */
+
+function openInteractionModal(actorId = null) {
+
+    const actorSelect =
+        $("interactionActor");
+
+    const targetSelect =
+        $("interactionTarget");
+
+
+    actorSelect.innerHTML =
+        game.players.map(player => {
+
+            return `
+                <option
+                    value="${player.id}"
+                    ${player.id === actorId ? "selected" : ""}
+                >
+                    ${escapeHtml(player.name)}
+                    — ${getRoleName(player.role)}
+                </option>
+            `;
+
+        }).join("");
+
+
+    targetSelect.innerHTML =
+        game.players.map(player => {
+
+            return `
+                <option value="${player.id}">
+                    ${escapeHtml(player.name)}
+                    — ${getRoleName(player.role)}
+                </option>
+            `;
+
+        }).join("");
+
+
+    $("interactionDescription").value = "";
+
+
+    $("interactionModal")
+        .classList.add("active");
+}
+
+
+function closeInteractionModal() {
+
+    $("interactionModal")
+        .classList.remove("active");
+}
+
+
+function saveInteraction() {
+
+    const actorId =
+        Number($("interactionActor").value);
+
+    const targetId =
+        Number($("interactionTarget").value);
+
+    const description =
+        $("interactionDescription")
+            .value
+            .trim();
+
+
+    if (!actorId || !targetId) {
+
+        alert("Выберите игроков.");
+
+        return;
+    }
+
+
+    if (actorId === targetId) {
+
+        alert(
+            "Игрок не может взаимодействовать сам с собой."
+        );
+
+        return;
+    }
+
+
+    if (!description) {
+
+        alert(
+            "Укажите, что произошло."
+        );
+
+        return;
+    }
+
+
+    const actor =
+        game.players.find(
+            player => player.id === actorId
+        );
+
+    const target =
+        game.players.find(
+            player => player.id === targetId
         );
 
 
     /*
-    Живая мафия
+        Сохраняем роль именно на момент
+        взаимодействия.
+
+        Это важно, если роль игрока
+        позже будет изменена.
     */
 
-    const aliveMafia =
-        alivePlayers.filter(
-            player =>
-                player.role ===
-                "mafia"
-        ).length;
+    game.interactions.push({
 
+        id: Date.now(),
 
-    /*
-    Живые мирные + остальные роли
-    */
+        actorId: actor.id,
+        actorName: actor.name,
+        actorRole: actor.role,
 
-    const aliveNonMafia =
-        alivePlayers.filter(
-            player =>
-                player.role !==
-                "mafia"
-        ).length;
+        targetId: target.id,
+        targetName: target.name,
+        targetRole: target.role,
 
+        description,
 
-    /*
-    ==============================================
-    ПОБЕДА МИРНЫХ
-    ==============================================
+        createdAt:
+            new Date().toISOString()
+    });
 
-    Если мафии больше нет.
-    */
-
-    if (
-        aliveMafia === 0
-    ) {
-
-        return "civilians";
-
-    }
-
-
-    /*
-    ==============================================
-    ПОБЕДА МАФИИ
-    ==============================================
-
-    Если мафии столько же,
-    сколько остальных игроков,
-    или больше.
-    */
-
-    if (
-        aliveMafia >=
-        aliveNonMafia
-    ) {
-
-        return "mafia";
-
-    }
-
-
-    /*
-    Игра продолжается
-    */
-
-    return null;
-
-}
-
-
-/* ==================================================
-   ЗАВЕРШЕНИЕ ИГРЫ
-================================================== */
-
-function finishGame(winner) {
-
-    /*
-    Сохраняем победителя
-    */
-
-    game.winner =
-        winner;
-
-
-    /*
-    Останавливаем игру
-    */
-
-    game.started =
-        false;
-
-
-    /*
-    Записываем событие
-    */
 
     addEvent(
-        "Игра окончена."
+        `${actor.name} взаимодействовал с ` +
+        `${target.name}: ${description}.`
     );
 
 
-    /*
-    ==============================================
-    ПОБЕДИЛА МАФИЯ
-    ==============================================
-    */
+    closeInteractionModal();
 
-    if (
-        winner === "mafia"
-    ) {
-
-        $("winnerTitle")
-            .textContent =
-            "МАФИЯ ПОБЕДИЛА";
-
-
-        $("winnerSubtitle")
-            .textContent =
-            "Мафия получила контроль над игрой.";
-
-    }
-
-
-    /*
-    ==============================================
-    ПОБЕДИЛИ МИРНЫЕ
-    ==============================================
-    */
-
-    else {
-
-        $("winnerTitle")
-            .textContent =
-            "МИРНЫЕ ПОБЕДИЛИ";
-
-
-        $("winnerSubtitle")
-            .textContent =
-            "Все игроки мафии были устранены.";
-
-    }
-
-
-    /*
-    Показываем экран победы
-    */
-
-    showScreen(
-        "screen-winner"
-    );
-
+    renderGame();
 }
 
 
-/* ==================================================
-   РЕЗУЛЬТАТЫ
-================================================== */
+/* =========================
+   INTERACTION STATISTICS
+========================= */
 
-function showResults() {
+function buildInteractionStatistics() {
 
-    $("resultsContainer")
-        .innerHTML =
-
-        game.players
-            .map(
-                player => `
-
-                    <div class="card">
+    const stats = {};
 
 
-                        <div class="player-name">
+    game.interactions.forEach(interaction => {
 
-                            ${
-                                escapeHtml(
-                                    player.name
-                                )
-                            }
+        const actorRole =
+            interaction.actorRole;
 
-                        </div>
+        const key =
+            `${interaction.actorId}_${interaction.targetId}`;
 
+
+        if (!stats[actorRole]) {
+
+            stats[actorRole] = {};
+        }
+
+
+        if (!stats[actorRole][key]) {
+
+            stats[actorRole][key] = {
+
+                actorName:
+                    interaction.actorName,
+
+                targetName:
+                    interaction.targetName,
+
+                targetRole:
+                    interaction.targetRole,
+
+                count: 0,
+
+                details: []
+            };
+        }
+
+
+        stats[actorRole][key].count++;
+
+
+        stats[actorRole][key].details.push(
+            interaction.description
+        );
+
+    });
+
+
+    return stats;
+}
+
+
+function renderInteractionStats(
+    targetId = "interactionStats"
+) {
+
+    const container =
+        $(targetId);
+
+
+    if (!game.interactions.length) {
+
+        container.innerHTML =
+            `<div class="empty-state">
+                Взаимодействий пока нет.
+            </div>`;
+
+        return;
+    }
+
+
+    const stats =
+        buildInteractionStatistics();
+
+
+    let html = "";
+
+
+    Object.keys(stats).forEach(role => {
+
+        const roleName =
+            getRoleName(role);
+
+
+        html += `
+
+            <div class="interaction-stat-card">
+
+                <div class="interaction-stat-role">
+                    ${roleName}
+                </div>
+
+        `;
+
+
+        Object.values(stats[role]).forEach(item => {
+
+            html += `
+
+                <div class="interaction-line">
+
+                    <div>
+
+                        <strong>
+                            ${escapeHtml(item.actorName)}
+                        </strong>
+
+                        →
+                        
+                        ${escapeHtml(item.targetName)}
 
                         <div class="player-role">
-
-                            Роль:
-                            ${
-                                getRoleName(
-                                    player.role
-                                )
-                            }
-
+                            ${getRoleName(item.targetRole)}
                         </div>
-
-
-                        <div
-                            class="
-                                status
-                                ${
-                                    player.alive
-                                        ? "alive"
-                                        : "dead"
-                                }
-                            "
-                        >
-
-                            ${
-                                player.alive
-
-                                    ? "Остался в игре"
-
-                                    : "Выбыл"
-                            }
-
-                        </div>
-
 
                     </div>
 
-                `
-            )
-            .join("");
+                    <div class="interaction-count">
+                        ${item.count} раз
+                    </div>
+
+                </div>
+
+            `;
+
+        });
 
 
-    showScreen(
-        "screen-results"
-    );
+        html += `
+            </div>
+        `;
+    });
 
+
+    container.innerHTML = html;
 }
 
 
-/* ==================================================
-   НОВАЯ ИГРА
-================================================== */
+/* =========================
+   RESULTS
+========================= */
+
+function showResults() {
+
+    const container =
+        $("resultsContainer");
+
+
+    container.innerHTML =
+        game.players.map(player => {
+
+            return `
+
+                <div class="result-player">
+
+                    <div class="result-main">
+
+                        <div>
+
+                            <div class="player-name">
+                                ${escapeHtml(player.name)}
+                            </div>
+
+                            <div class="result-role">
+                                ${getRoleName(player.role)}
+                            </div>
+
+                        </div>
+
+
+                        <div class="result-votes">
+
+                            <strong>
+                                ${player.votes}
+                            </strong>
+
+                            <span>
+                                голосов
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                    <div class="player-status ${
+                        player.alive ? "" : "dead"
+                    }">
+
+                        ${
+                            player.alive
+                                ? "Остался в игре"
+                                : "Выбыл"
+                        }
+
+                    </div>
+
+                </div>
+
+            `;
+
+        }).join("");
+
+
+    renderInteractionStats(
+        "resultsInteractionStats"
+    );
+
+
+    showScreen("screen-results");
+}
+
+
+/* =========================
+   NEW GAME
+========================= */
 
 function newGame() {
 
     game.players = [];
-
     game.events = [];
-
+    game.interactions = [];
     game.winner = null;
-
     game.started = false;
 
-    game.mafiaCount = 0;
+
+    $("playerCount").value = "6";
 
 
-    /*
-    Возвращаемся
-    на главный экран
-    */
-
-    showScreen(
-        "screen-start"
-    );
-
+    showScreen("screen-start");
 }
 
 
-/* ==================================================
-   КНОПКА "ДАЛЕЕ"
-================================================== */
+/* =========================
+   EVENT LISTENERS
+========================= */
 
 $("btnCreatePlayers")
     .addEventListener(
@@ -1305,20 +1396,12 @@ $("btnCreatePlayers")
     );
 
 
-/* ==================================================
-   КНОПКА "ДАЛЕЕ" ПОСЛЕ ИМЁН
-================================================== */
-
 $("btnToRoles")
     .addEventListener(
         "click",
         goToRoles
     );
 
-
-/* ==================================================
-   КНОПКА "НАЧАТЬ ИГРУ"
-================================================== */
 
 $("btnStartGame")
     .addEventListener(
@@ -1327,20 +1410,12 @@ $("btnStartGame")
     );
 
 
-/* ==================================================
-   КНОПКА "РЕЗУЛЬТАТЫ"
-================================================== */
-
 $("btnResults")
     .addEventListener(
         "click",
         showResults
     );
 
-
-/* ==================================================
-   НОВАЯ ИГРА
-================================================== */
 
 $("btnNewGame")
     .addEventListener(
@@ -1349,151 +1424,174 @@ $("btnNewGame")
     );
 
 
-$("btnNewGame2")
+$("btnNewGameFromResults")
     .addEventListener(
         "click",
         newGame
     );
 
 
-/* ==================================================
-   ЗАВЕРШИТЬ ИГРУ
-================================================== */
-
-$("btnEndGame")
+$("btnFinishGame")
     .addEventListener(
         "click",
         () => {
 
-            const confirmed =
-                confirm(
+            if (
+                !confirm(
                     "Завершить текущую игру?"
-                );
-
-
-            if (confirmed) {
-
-                newGame();
-
+                )
+            ) {
+                return;
             }
 
+
+            /*
+                Если ведущий завершил игру вручную,
+                просто показываем результаты.
+            */
+
+            game.started = false;
+
+            game.winner = "manual";
+
+
+            $("winnerTitle").textContent =
+                "ИГРА ЗАВЕРШЕНА";
+
+            $("winnerSubtitle").textContent =
+                "Игра была завершена ведущим.";
+
+
+            showScreen("screen-winner");
         }
     );
 
 
-/* ==================================================
-   КНОПКИ НАЗАД
-================================================== */
+$("btnResetVotes")
+    .addEventListener(
+        "click",
+        () => {
+
+            if (
+                confirm(
+                    "Сбросить все голоса?"
+                )
+            ) {
+
+                resetVotes();
+            }
+        }
+    );
+
+
+$("btnAddInteraction")
+    .addEventListener(
+        "click",
+        () => {
+
+            openInteractionModal();
+        }
+    );
+
+
+$("btnCancelInteraction")
+    .addEventListener(
+        "click",
+        closeInteractionModal
+    );
+
+
+$("btnSaveInteraction")
+    .addEventListener(
+        "click",
+        saveInteraction
+    );
+
+
+/* =========================
+   BACK BUTTONS
+========================= */
 
 document
-    .querySelectorAll(
-        "[data-back]"
-    )
-    .forEach(
-        button => {
+    .querySelectorAll("[data-back]")
+    .forEach(button => {
 
-            button.addEventListener(
-                "click",
-                () => {
+        button.addEventListener(
+            "click",
+            () => {
 
-                    showScreen(
-                        button.dataset.back
+                const activeScreen =
+                    document.querySelector(
+                        ".screen.active"
                     );
 
+
+                if (
+                    activeScreen.id ===
+                    "screen-names"
+                ) {
+
+                    showScreen("screen-start");
+
+                    return;
                 }
-            );
-
-        }
-    );
 
 
-/* ==================================================
+                if (
+                    activeScreen.id ===
+                    "screen-roles"
+                ) {
+
+                    showScreen("screen-names");
+
+                    return;
+                }
+
+            }
+        );
+
+    });
+
+
+/* =========================
    TELEGRAM BACK BUTTON
-================================================== */
+========================= */
 
 if (tg) {
 
-    tg.BackButton.onClick(
-        () => {
+    tg.BackButton.onClick(() => {
 
-            const activeScreen =
-                document.querySelector(
-                    ".screen.active"
-                );
-
-
-            /*
-            Экран имён
-            */
-
-            if (
-                activeScreen.id ===
-                "screen-names"
-            ) {
-
-                showScreen(
-                    "screen-start"
-                );
-
-                tg.BackButton.hide();
-
-                return;
-
-            }
-
-
-            /*
-            Экран ролей
-            */
-
-            if (
-                activeScreen.id ===
-                "screen-roles"
-            ) {
-
-                showScreen(
-                    "screen-names"
-                );
-
-                return;
-
-            }
-
-
-            /*
-            На экране игры
-            ничего автоматически
-            не делаем
-            */
-
-            if (
-                activeScreen.id ===
-                "screen-game"
-            ) {
-
-                return;
-
-            }
-
-
-            /*
-            Остальные экраны
-            */
-
-            showScreen(
-                "screen-start"
+        const activeScreen =
+            document.querySelector(
+                ".screen.active"
             );
 
-        }
-    );
 
+        if (
+            activeScreen.id ===
+            "screen-names"
+        ) {
+
+            showScreen("screen-start");
+
+            tg.BackButton.hide();
+
+            return;
+        }
+
+
+        if (
+            activeScreen.id ===
+            "screen-roles"
+        ) {
+
+            showScreen("screen-names");
+
+            return;
+        }
+
+    });
 }
 
 
-/* ==================================================
-   ЗАПУСК
-================================================== */
-
-console.log(
-    "MAFIA ROOM запущен"
-);
+console.log("MAFIA ROOM запущен");
