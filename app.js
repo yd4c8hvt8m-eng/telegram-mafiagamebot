@@ -5,8 +5,11 @@
 const tg = window.Telegram?.WebApp;
 
 if (tg) {
+
     tg.ready();
+
     tg.expand();
+
 }
 
 
@@ -17,33 +20,63 @@ if (tg) {
 const ROLES = {
 
     mafia: {
+
         name: "Мафия",
-        nightAction: "kill"
+
+        actionName: "Убийство",
+
+        nightAction: true
+
     },
 
     doctor: {
+
         name: "Доктор",
-        nightAction: "heal"
+
+        actionName: "Лечение",
+
+        nightAction: true
+
     },
 
     commissioner: {
+
         name: "Комиссар",
-        nightAction: "check"
+
+        actionName: "Проверка",
+
+        nightAction: true
+
     },
 
     maniac: {
+
         name: "Маньяк",
-        nightAction: "kill"
+
+        actionName: "Убийство",
+
+        nightAction: true
+
     },
 
     mistress: {
+
         name: "Любовница",
-        nightAction: "block"
+
+        actionName: "Блокировка",
+
+        nightAction: true
+
     },
 
     civilian: {
+
         name: "Мирный",
-        nightAction: null
+
+        actionName: null,
+
+        nightAction: false
+
     }
 
 };
@@ -110,29 +143,31 @@ const state = {
 };
 
 
-/* =====================================================
-   GLOBAL VARIABLES
-===================================================== */
-
 let selectedPlayerCount = 6;
 
 let editingPlayerId = null;
 
-let nightActionType = null;
+
+/* =====================================================
+   DOM HELPER
+===================================================== */
+
+function $(id) {
+
+    return document.getElementById(id);
+
+}
 
 
 /* =====================================================
-   HELPERS
+   BASIC HELPERS
 ===================================================== */
-
-const $ = id =>
-    document.getElementById(id);
-
 
 function roleName(role) {
 
     return ROLES[role]?.name ||
         "Не назначена";
+
 }
 
 
@@ -142,23 +177,27 @@ function getPlayer(id) {
         player =>
             player.id === Number(id)
     );
+
 }
 
 
-function alive() {
+function alivePlayers() {
 
     return state.players.filter(
-        player => player.alive
+        player =>
+            player.alive
     );
+
 }
 
 
 function aliveRole(role) {
 
-    return alive().filter(
+    return alivePlayers().filter(
         player =>
             player.role === role
     );
+
 }
 
 
@@ -166,27 +205,45 @@ function escapeHtml(value) {
 
     return String(value ?? "")
 
-        .replaceAll("&", "&amp;")
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
 
-        .replaceAll("<", "&lt;")
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
 
-        .replaceAll(">", "&gt;")
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
 
-        .replaceAll('"', "&quot;")
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
 
-        .replaceAll("'", "&#039;");
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
+
 }
 
 
 function timeNow() {
 
-    return new Date().toLocaleTimeString(
-        "ru-RU",
-        {
-            hour: "2-digit",
-            minute: "2-digit"
-        }
-    );
+    return new Date()
+        .toLocaleTimeString(
+            "ru-RU",
+            {
+                hour: "2-digit",
+                minute: "2-digit"
+            }
+        );
+
 }
 
 
@@ -198,22 +255,29 @@ function showScreen(id) {
 
     document
         .querySelectorAll(".screen")
-        .forEach(screen => {
+        .forEach(
+            screen => {
 
-            screen.classList.remove(
-                "active"
-            );
+                screen.classList.remove(
+                    "active"
+                );
 
-        });
+            }
+        );
 
 
-    $(id).classList.add("active");
+    $(id)
+        .classList.add("active");
 
 
     window.scrollTo({
+
         top: 0,
+
         behavior: "smooth"
+
     });
+
 }
 
 
@@ -249,14 +313,15 @@ function addEvent(
 
 function updatePlayerCount() {
 
-    $("playerCount").textContent =
+    $("playerCount")
+        .textContent =
         selectedPlayerCount;
+
 }
 
 
-$("btnCountMinus").addEventListener(
-    "click",
-    () => {
+$("btnCountMinus")
+    .onclick = () => {
 
         if (
             selectedPlayerCount > 6
@@ -268,13 +333,11 @@ $("btnCountMinus").addEventListener(
 
         }
 
-    }
-);
+    };
 
 
-$("btnCountPlus").addEventListener(
-    "click",
-    () => {
+$("btnCountPlus")
+    .onclick = () => {
 
         if (
             selectedPlayerCount < 15
@@ -286,8 +349,7 @@ $("btnCountPlus").addEventListener(
 
         }
 
-    }
-);
+    };
 
 
 /* =====================================================
@@ -295,44 +357,41 @@ $("btnCountPlus").addEventListener(
 ===================================================== */
 
 $("btnCreateGame")
-    .addEventListener(
-        "click",
-        createGame
-    );
+    .onclick = createGame;
 
 
 function createGame() {
 
     state.players =
         Array.from(
+
             {
                 length:
                     selectedPlayerCount
             },
 
-            (_, index) => {
+            (_, index) => ({
 
-                return {
+                id:
+                    index + 1,
 
-                    id: index + 1,
+                name:
+                    `Игрок ${index + 1}`,
 
-                    name:
-                        `Игрок ${index + 1}`,
+                role:
+                    "civilian",
 
-                    role:
-                        "civilian",
+                alive:
+                    true,
 
-                    alive: true,
+                eliminatedAt:
+                    null,
 
-                    eliminatedAt:
-                        null,
+                eliminationReason:
+                    null
 
-                    eliminationReason:
-                        null
+            })
 
-                };
-
-            }
         );
 
 
@@ -368,13 +427,6 @@ function createGame() {
     };
 
 
-    /*
-        Начальный рекомендованный состав.
-
-        Ведущий может полностью изменить
-        его перед началом.
-    */
-
     const recommendedMafia =
         selectedPlayerCount >= 8
             ? 2
@@ -406,19 +458,21 @@ function createGame() {
     };
 
 
+    addEvent(
+
+        `Создана партия на ` +
+        `${selectedPlayerCount} игроков.`
+
+    );
+
+
     renderGame();
+
 
     showScreen(
         "screen-game"
     );
 
-
-    addEvent(
-        `Создана партия на ${selectedPlayerCount} игроков.`
-    );
-
-
-    renderGame();
 }
 
 
@@ -428,36 +482,36 @@ function createGame() {
 
 function renderRoleConfig() {
 
-    const labels = [
+    const roles = [
 
         [
             "mafia",
             "Мафия",
-            "Убивает ночью"
+            "Убийство"
         ],
 
         [
             "doctor",
             "Доктор",
-            "Лечит игрока"
+            "Лечение"
         ],
 
         [
             "commissioner",
             "Комиссар",
-            "Проверяет роль"
+            "Проверка"
         ],
 
         [
             "maniac",
             "Маньяк",
-            "Самостоятельно убивает"
+            "Самостоятельное убийство"
         ],
 
         [
             "mistress",
             "Любовница",
-            "Блокирует действие"
+            "Блокировка"
         ],
 
         [
@@ -469,69 +523,90 @@ function renderRoleConfig() {
     ];
 
 
-    $("roleConfig").innerHTML = `
+    $("roleConfig")
+        .innerHTML = `
 
-        <div class="role-config-card">
+            <div class="role-config-card">
 
-            ${labels.map(
-                ([key, name, hint]) => `
+                ${roles
+                    .map(
+                        (
+                            [
+                                key,
+                                name,
+                                hint
+                            ]
+                        ) => `
 
-                    <div
-                        class="role-config-row"
-                    >
-
-                        <div>
-
-                            <span
-                                class="role-config-name"
+                            <div
+                                class="role-config-row"
                             >
-                                ${name}
-                            </span>
 
-                            <span
-                                class="role-config-hint"
-                            >
-                                ${hint}
-                            </span>
+                                <div>
 
-                        </div>
+                                    <span
+                                        class="role-config-name"
+                                    >
+                                        ${name}
+                                    </span>
 
+                                    <span
+                                        class="role-config-hint"
+                                    >
+                                        ${hint}
+                                    </span>
 
-                        <button
-                            class="role-step"
-                            data-role-minus="${key}"
-                        >
-                            −
-                        </button>
+                                </div>
 
 
-                        <div class="role-count">
-                            ${state.roleConfig[key]}
-                        </div>
+                                <button
+                                    class="role-step"
+                                    data-role-minus="${key}"
+                                    type="button"
+                                >
+                                    −
+                                </button>
 
 
-                        <button
-                            class="role-step"
-                            data-role-plus="${key}"
-                        >
-                            +
-                        </button>
+                                <div
+                                    class="role-count"
+                                >
+                                    ${
+                                        state.roleConfig[
+                                            key
+                                        ]
+                                    }
+                                </div>
 
-                    </div>
 
-                `
-            ).join("")}
+                                <button
+                                    class="role-step"
+                                    data-role-plus="${key}"
+                                    type="button"
+                                >
+                                    +
+                                </button>
 
-        </div>
+                            </div>
 
-    `;
+                        `
+                    )
+                    .join("")}
+
+            </div>
+
+        `;
 
 
     const total =
         Object.values(
             state.roleConfig
-        ).reduce(
-            (sum, value) =>
+        )
+        .reduce(
+            (
+                sum,
+                value
+            ) =>
                 sum + value,
             0
         );
@@ -542,30 +617,38 @@ function renderRoleConfig() {
 
 
     if (
-        total === state.players.length &&
+
+        total ===
+        state.players.length &&
+
         state.roleConfig.mafia > 0
+
     ) {
 
         status.textContent =
-            `Состав готов: ${total} / ${state.players.length}`;
+            `Состав готов: ` +
+            `${total} / ` +
+            `${state.players.length}`;
 
         status.className =
             "config-status ok";
 
-        $("btnApplyRoles").disabled =
-            false;
+        $("btnApplyRoles")
+            .disabled = false;
 
     } else {
 
         status.textContent =
-            `Назначено ролей: ${total} / ${state.players.length}. ` +
+            `Назначено ролей: ` +
+            `${total} / ` +
+            `${state.players.length}. ` +
             `Мафии должно быть минимум 1.`;
 
         status.className =
             "config-status error";
 
-        $("btnApplyRoles").disabled =
-            true;
+        $("btnApplyRoles")
+            .disabled = true;
 
     }
 
@@ -574,43 +657,49 @@ function renderRoleConfig() {
         .querySelectorAll(
             "[data-role-minus]"
         )
-        .forEach(button => {
+        .forEach(
+            button => {
 
-            button.onclick = () => {
+                button.onclick = () => {
 
-                changeRoleCount(
-                    button.dataset.roleMinus,
-                    -1
-                );
+                    changeRoleCount(
 
-            };
+                        button.dataset.roleMinus,
 
-        });
+                        -1
+
+                    );
+
+                };
+
+            }
+        );
 
 
     document
         .querySelectorAll(
             "[data-role-plus]"
         )
-        .forEach(button => {
+        .forEach(
+            button => {
 
-            button.onclick = () => {
+                button.onclick = () => {
 
-                changeRoleCount(
-                    button.dataset.rolePlus,
-                    1
-                );
+                    changeRoleCount(
 
-            };
+                        button.dataset.rolePlus,
 
-        });
+                        1
+
+                    );
+
+                };
+
+            }
+        );
 
 }
 
-
-/* =====================================================
-   CHANGE ROLE COUNT
-===================================================== */
 
 function changeRoleCount(
     role,
@@ -624,16 +713,24 @@ function changeRoleCount(
     const total =
         Object.values(
             state.roleConfig
-        ).reduce(
-            (sum, value) =>
+        )
+        .reduce(
+            (
+                sum,
+                value
+            ) =>
                 sum + value,
             0
         );
 
 
     if (
+
         delta > 0 &&
-        total >= state.players.length
+
+        total >=
+        state.players.length
+
     ) {
 
         return;
@@ -642,8 +739,11 @@ function changeRoleCount(
 
 
     if (
+
         delta < 0 &&
+
         current <= 0
+
     ) {
 
         return;
@@ -651,15 +751,14 @@ function changeRoleCount(
     }
 
 
-    /*
-        В партии должна оставаться
-        хотя бы одна мафия.
-    */
-
     if (
+
         role === "mafia" &&
+
         current === 1 &&
+
         delta < 0
+
     ) {
 
         return;
@@ -672,6 +771,7 @@ function changeRoleCount(
 
 
     renderRoleConfig();
+
 }
 
 
@@ -680,10 +780,7 @@ function changeRoleCount(
 ===================================================== */
 
 $("btnApplyRoles")
-    .addEventListener(
-        "click",
-        applyRoles
-    );
+    .onclick = applyRoles;
 
 
 function applyRoles() {
@@ -691,8 +788,12 @@ function applyRoles() {
     const total =
         Object.values(
             state.roleConfig
-        ).reduce(
-            (sum, value) =>
+        )
+        .reduce(
+            (
+                sum,
+                value
+            ) =>
                 sum + value,
             0
         );
@@ -708,6 +809,7 @@ function applyRoles() {
         );
 
         return;
+
     }
 
 
@@ -720,6 +822,7 @@ function applyRoles() {
         );
 
         return;
+
     }
 
 
@@ -728,8 +831,14 @@ function applyRoles() {
 
     Object.entries(
         state.roleConfig
-    ).forEach(
-        ([role, count]) => {
+    )
+    .forEach(
+        (
+            [
+                role,
+                count
+            ]
+        ) => {
 
             for (
                 let i = 0;
@@ -750,8 +859,11 @@ function applyRoles() {
     */
 
     for (
-        let i = roles.length - 1;
+        let i =
+            roles.length - 1;
+
         i > 0;
+
         i--
     ) {
 
@@ -765,30 +877,38 @@ function applyRoles() {
         [
             roles[i],
             roles[j]
-        ] =
-        [
+        ] = [
+
             roles[j],
             roles[i]
+
         ];
 
     }
 
 
-    state.players.forEach(
-        (player, index) => {
+    state.players
+        .forEach(
+            (
+                player,
+                index
+            ) => {
 
-            player.role =
-                roles[index];
+                player.role =
+                    roles[index];
 
-        }
-    );
+            }
+        );
 
 
-    state.started = true;
+    state.started =
+        true;
 
-    state.finished = false;
+    state.finished =
+        false;
 
-    state.phase = "day";
+    state.phase =
+        "day";
 
 
     addEvent(
@@ -800,9 +920,13 @@ function applyRoles() {
 
 
     showPhaseOverlay(
+
         "day",
+
         `ДЕНЬ ${state.round}`,
+
         "Игра начинается"
+
     );
 
 }
@@ -819,7 +943,9 @@ function openPlayerEditor(id) {
 
 
     if (!player) {
+
         return;
+
     }
 
 
@@ -827,19 +953,30 @@ function openPlayerEditor(id) {
         player.id;
 
 
-    $("playerNameInput").value =
+    $("playerNameInput")
+        .value =
         player.name;
 
 
-    $("playerRoleInput").innerHTML =
-        Object.entries(ROLES)
+    $("playerRoleInput")
+        .innerHTML =
+
+            Object.entries(
+                ROLES
+            )
             .map(
-                ([key, role]) => `
+                (
+                    [
+                        key,
+                        role
+                    ]
+                ) => `
 
                     <option
                         value="${key}"
                         ${
-                            key === player.role
+                            key ===
+                            player.role
                                 ? "selected"
                                 : ""
                         }
@@ -853,7 +990,10 @@ function openPlayerEditor(id) {
 
 
     $("playerModal")
-        .classList.add("active");
+        .classList.add(
+            "active"
+        );
+
 }
 
 
@@ -878,7 +1018,9 @@ $("btnSavePlayer")
 
 
         if (!player) {
+
             return;
+
         }
 
 
@@ -900,17 +1042,23 @@ $("btnSavePlayer")
             );
 
             return;
+
         }
 
 
         const duplicate =
             state.players.some(
+
                 other =>
+
                     other.id !==
                     player.id &&
+
                     other.name
                         .toLowerCase() ===
-                    name.toLowerCase()
+                    name
+                        .toLowerCase()
+
             );
 
 
@@ -921,28 +1069,42 @@ $("btnSavePlayer")
             );
 
             return;
+
         }
 
 
         if (
-            player.name !== name
+            player.name !==
+            name
         ) {
 
             addEvent(
-                `Имя изменено: ${player.name} → ${name}.`
+
+                `Имя изменено: ` +
+                `${player.name} → ${name}.`
+
             );
 
         }
 
 
         if (
-            player.role !== role
+            player.role !==
+            role
         ) {
 
             addEvent(
+
                 `Роль ${name}: ` +
-                `${roleName(player.role)} → ` +
-                `${roleName(role)}.`
+
+                `${roleName(
+                    player.role
+                )} → ` +
+
+                `${roleName(
+                    role
+                )}.`
+
             );
 
         }
@@ -972,175 +1134,216 @@ $("btnSavePlayer")
 
 function renderPlayers() {
 
-    $("playersContainer").innerHTML =
+    $("playersContainer")
+        .innerHTML =
 
-        state.players
-            .map(
-                (player, index) => {
+            state.players
+                .map(
+                    (
+                        player,
+                        index
+                    ) => {
 
-                    const visibleRole =
+                        const visibleRole =
 
-                        (
-                            !player.alive &&
-                            !state.showRoleAfterDeath
-                        )
+                            (
+                                !player.alive &&
 
-                        ?
+                                !state
+                                    .showRoleAfterDeath
 
-                        "Роль скрыта"
+                            )
 
-                        :
+                                ?
 
-                        roleName(
-                            player.role
-                        );
+                                "Роль скрыта"
+
+                                :
+
+                                roleName(
+                                    player.role
+                                );
 
 
-                    return `
+                        return `
 
-                        <div class="player">
-
-                            <div class="player-main">
-
-                                <div class="player-number">
-                                    Игрок ${index + 1}
-                                </div>
-
-                                <div class="player-name">
-                                    ${escapeHtml(
-                                        player.name
-                                    )}
-                                </div>
-
-                                <div class="player-role">
-                                    ${visibleRole}
-                                </div>
+                            <div
+                                class="player"
+                            >
 
                                 <div
-                                    class="
-                                        status
+                                    class="player-main"
+                                >
+
+                                    <div
+                                        class="player-number"
+                                    >
+                                        Игрок
+                                        ${index + 1}
+                                    </div>
+
+
+                                    <div
+                                        class="player-name"
+                                    >
+                                        ${escapeHtml(
+                                            player.name
+                                        )}
+                                    </div>
+
+
+                                    <div
+                                        class="player-role"
+                                    >
+                                        ${visibleRole}
+                                    </div>
+
+
+                                    <div
+                                        class="
+                                            status
+                                            ${
+                                                player.alive
+                                                    ? ""
+                                                    : "dead"
+                                            }
+                                        "
+                                    >
+
                                         ${
                                             player.alive
-                                                ? ""
-                                                : "dead"
+
+                                                ?
+
+                                                "● В игре"
+
+                                                :
+
+                                                "☠ Выбыл"
                                         }
-                                    "
+
+                                    </div>
+
+                                </div>
+
+
+                                <div
+                                    class="player-actions"
                                 >
+
+                                    <button
+                                        class="secondary"
+                                        data-edit="${player.id}"
+                                        type="button"
+                                    >
+                                        Изменить
+                                    </button>
+
 
                                     ${
                                         player.alive
-                                            ? "● В игре"
-                                            : "☠ Выбыл"
+
+                                            ?
+
+                                            `
+                                                <button
+                                                    class="danger"
+                                                    data-eliminate="${player.id}"
+                                                    type="button"
+                                                >
+                                                    Вывести
+                                                </button>
+                                            `
+
+                                            :
+
+                                            `
+                                                <button
+                                                    class="secondary"
+                                                    data-return="${player.id}"
+                                                    type="button"
+                                                >
+                                                    Вернуть
+                                                </button>
+                                            `
                                     }
 
                                 </div>
 
                             </div>
 
+                        `;
 
-                            <div class="player-actions">
-
-                                <button
-                                    class="secondary"
-                                    data-edit="${player.id}"
-                                >
-                                    Изменить
-                                </button>
-
-
-                                ${
-                                    player.alive
-
-                                    ?
-
-                                    `
-                                        <button
-                                            class="danger"
-                                            data-eliminate="${player.id}"
-                                        >
-                                            Вывести
-                                        </button>
-                                    `
-
-                                    :
-
-                                    `
-                                        <button
-                                            class="secondary"
-                                            data-return="${player.id}"
-                                        >
-                                            Вернуть
-                                        </button>
-                                    `
-                                }
-
-                            </div>
-
-                        </div>
-
-                    `;
-
-                }
-            )
-            .join("");
+                    }
+                )
+                .join("");
 
 
     document
         .querySelectorAll(
             "[data-edit]"
         )
-        .forEach(button => {
+        .forEach(
+            button => {
 
-            button.onclick = () => {
+                button.onclick = () => {
 
-                openPlayerEditor(
-                    button.dataset.edit
-                );
+                    openPlayerEditor(
+                        button.dataset.edit
+                    );
 
-            };
+                };
 
-        });
+            }
+        );
 
 
     document
         .querySelectorAll(
             "[data-eliminate]"
         )
-        .forEach(button => {
+        .forEach(
+            button => {
 
-            button.onclick = () => {
+                button.onclick = () => {
 
-                eliminatePlayer(
-                    button.dataset.eliminate,
-                    "Ручное выбытие"
-                );
+                    eliminatePlayer(
 
-            };
+                        button.dataset.eliminate,
 
-        });
+                        "Ручное выбытие"
+
+                    );
+
+                };
+
+            }
+        );
 
 
     document
         .querySelectorAll(
             "[data-return]"
         )
-        .forEach(button => {
+        .forEach(
+            button => {
 
-            button.onclick = () => {
+                button.onclick = () => {
 
-                returnPlayer(
-                    button.dataset.return
-                );
+                    returnPlayer(
+                        button.dataset.return
+                    );
 
-            };
+                };
 
-        });
+            }
+        );
 
 }
 
 
 /* =====================================================
-   ELIMINATE PLAYER
+   ELIMINATE
 ===================================================== */
 
 function eliminatePlayer(
@@ -1187,8 +1390,10 @@ function eliminatePlayer(
 
 
     addEvent(
+
         `${player.name} выбыл. ` +
         `Причина: ${reason}.`
+
     );
 
 
@@ -1205,10 +1410,6 @@ function eliminatePlayer(
 
 }
 
-
-/* =====================================================
-   RETURN PLAYER
-===================================================== */
 
 function returnPlayer(id) {
 
@@ -1268,7 +1469,7 @@ function returnPlayer(id) {
 
 
 /* =====================================================
-   DAY / NIGHT
+   DAY
 ===================================================== */
 
 function startDay() {
@@ -1296,13 +1497,21 @@ function startDay() {
 
 
     showPhaseOverlay(
+
         "day",
+
         `ДЕНЬ ${state.round}`,
+
         "Город просыпается"
+
     );
 
 }
 
+
+/* =====================================================
+   NIGHT
+===================================================== */
 
 function startNight() {
 
@@ -1319,6 +1528,11 @@ function startNight() {
     state.phase =
         "night";
 
+
+    /*
+        Удаляем действия
+        предыдущей ночи.
+    */
 
     state.night = {
 
@@ -1344,9 +1558,13 @@ function startNight() {
 
 
     showPhaseOverlay(
+
         "night",
+
         `НОЧЬ ${state.round}`,
+
         "Город засыпает"
+
     );
 
 }
@@ -1387,17 +1605,13 @@ function showPhaseOverlay(
 
     $("phaseOverlayTitle")
         .textContent =
-            title;
+        title;
 
 
     $("phaseOverlaySubtitle")
         .textContent =
-            subtitle;
+        subtitle;
 
-
-    /*
-        Перезапускаем CSS animation.
-    */
 
     void overlay.offsetWidth;
 
@@ -1422,7 +1636,119 @@ function showPhaseOverlay(
 
 
 /* =====================================================
-   NIGHT ACTIONS
+   NIGHT TARGETS
+===================================================== */
+
+function getNightTargets(
+    role,
+    actorId
+) {
+
+    let targets =
+        alivePlayers();
+
+
+    /*
+        Мафия
+    */
+
+    if (
+        role === "mafia"
+    ) {
+
+        targets =
+            targets.filter(
+                player =>
+                    player.id !==
+                    actorId
+            );
+
+    }
+
+
+    /*
+        Доктор
+    */
+
+    if (
+
+        role === "doctor" &&
+
+        !state.doctorSelfHeal
+
+    ) {
+
+        targets =
+            targets.filter(
+                player =>
+                    player.id !==
+                    actorId
+            );
+
+    }
+
+
+    /*
+        Комиссар
+    */
+
+    if (
+        role === "commissioner"
+    ) {
+
+        targets =
+            targets.filter(
+                player =>
+                    player.id !==
+                    actorId
+            );
+
+    }
+
+
+    /*
+        Маньяк
+    */
+
+    if (
+        role === "maniac"
+    ) {
+
+        targets =
+            targets.filter(
+                player =>
+                    player.id !==
+                    actorId
+            );
+
+    }
+
+
+    /*
+        Любовница
+    */
+
+    if (
+        role === "mistress"
+    ) {
+
+        targets =
+            targets.filter(
+                player =>
+                    player.id !==
+                    actorId
+            );
+
+    }
+
+
+    return targets;
+
+}
+
+
+/* =====================================================
+   RENDER NIGHT ACTIONS
 ===================================================== */
 
 function renderNightActions() {
@@ -1432,13 +1758,17 @@ function renderNightActions() {
 
 
     if (
-        state.phase !== "night"
+        state.phase !==
+        "night"
     ) {
 
         box.innerHTML = `
 
             <div class="empty">
-                Ночные действия доступны только ночью.
+
+                Ночные действия доступны
+                только во время ночи.
+
             </div>
 
         `;
@@ -1448,102 +1778,280 @@ function renderNightActions() {
     }
 
 
-    const actionDefinitions = [
+    const roles = [
 
-        [
-            "mafia",
-            "Мафия",
-            "Выбирает цель для убийства.",
-            "Выбрать цель"
-        ],
+        {
 
-        [
-            "doctor",
-            "Доктор",
-            "Выбирает игрока для лечения.",
-            "Выбрать лечение"
-        ],
+            key:
+                "mafia",
 
-        [
-            "commissioner",
-            "Комиссар",
-            "Проверяет роль игрока.",
-            "Провести проверку"
-        ],
+            title:
+                "Мафия",
 
-        [
-            "maniac",
-            "Маньяк",
-            "Самостоятельно выбирает жертву.",
-            "Выбрать жертву"
-        ],
+            description:
+                "Каждый живой игрок-мафия выбирает цель."
 
-        [
-            "mistress",
-            "Любовница",
-            "Блокирует ночное действие.",
-            "Выбрать игрока"
-        ]
+        },
+
+        {
+
+            key:
+                "doctor",
+
+            title:
+                "Доктор",
+
+            description:
+                "Каждый доктор выбирает игрока для лечения."
+
+        },
+
+        {
+
+            key:
+                "commissioner",
+
+            title:
+                "Комиссар",
+
+            description:
+                "Каждый комиссар выбирает игрока для проверки."
+
+        },
+
+        {
+
+            key:
+                "maniac",
+
+            title:
+                "Маньяк",
+
+            description:
+                "Каждый маньяк выбирает свою жертву."
+
+        },
+
+        {
+
+            key:
+                "mistress",
+
+            title:
+                "Любовница",
+
+            description:
+                "Каждая любовница выбирает игрока для блокировки."
+
+        }
 
     ];
 
 
-    box.innerHTML =
-
-        actionDefinitions
-            .map(
-                ([role, title, description, button]) => {
-
-                    const actors =
-                        aliveRole(role);
+    let html = "";
 
 
-                    if (!actors.length) {
+    roles.forEach(
+        roleInfo => {
 
-                        return "";
-
-                    }
-
-
-                    const completed =
-                        state.night[role]
-                            .length;
+            const actors =
+                aliveRole(
+                    roleInfo.key
+                );
 
 
-                    return `
+            if (
+                !actors.length
+            ) {
 
-                        <div class="action-role">
+                return;
 
-                            <div>
+            }
 
-                                <div
-                                    class="action-role-title"
-                                >
-                                    ${title}
-                                </div>
 
-                                <div
-                                    class="action-role-sub"
-                                >
-                                    ${description}
-                                </div>
+            html += `
 
-                                <div
-                                    class="action-role-sub"
-                                >
-                                    Выполнено:
-                                    ${completed}
-                                    / ${actors.length}
-                                </div>
+                <div
+                    class="role-night-block"
+                >
+
+                    <div
+                        class="night-role-header"
+                    >
+
+                        <div
+                            class="action-role-title"
+                        >
+                            ${roleInfo.title}
+                        </div>
+
+                        <div
+                            class="action-role-sub"
+                        >
+                            ${roleInfo.description}
+                        </div>
+
+                    </div>
+
+            `;
+
+
+            actors.forEach(
+                actor => {
+
+                    const savedAction =
+                        state.night[
+                            roleInfo.key
+                        ]
+                        .find(
+                            action =>
+                                action.actorId ===
+                                actor.id
+                        );
+
+
+                    const targets =
+                        getNightTargets(
+
+                            roleInfo.key,
+
+                            actor.id
+
+                        );
+
+
+                    html += `
+
+                        <div
+                            class="night-player-action"
+                        >
+
+                            <div
+                                class="night-player-name"
+                            >
+
+                                ${escapeHtml(
+                                    actor.name
+                                )}
 
                             </div>
 
 
-                            <button
-                                class="secondary"
-                                data-night-action="${role}"
+                            <select
+                                id="
+                                    night-target-${roleInfo.key}-${actor.id}
+                                "
+                                class="night-target-select"
                             >
-                                ${button}
+
+                                ${
+                                    targets.length
+
+                                        ?
+
+                                        targets
+                                            .map(
+                                                target => `
+
+                                                    <option
+                                                        value="${target.id}"
+                                                        ${
+                                                            savedAction &&
+                                                            savedAction.targetId ===
+                                                            target.id
+
+                                                                ?
+
+                                                                "selected"
+
+                                                                :
+
+                                                                ""
+                                                        }
+                                                    >
+
+                                                        ${escapeHtml(
+                                                            target.name
+                                                        )}
+
+                                                        —
+
+                                                        ${roleName(
+                                                            target.role
+                                                        )}
+
+                                                    </option>
+
+                                                `
+                                            )
+                                            .join("")
+
+                                        :
+
+                                        `
+                                            <option
+                                                value=""
+                                            >
+                                                Нет доступных целей
+                                            </option>
+                                        `
+                                }
+
+                            </select>
+
+
+                            <button
+                                type="button"
+                                class="primary night-action-button"
+                                data-save-night="${roleInfo.key}"
+                                data-actor-id="${actor.id}"
+                                ${
+                                    targets.length
+                                        ? ""
+                                        : "disabled"
+                                }
+                            >
+
+                                ${
+                                    savedAction
+
+                                        ?
+
+                                        "Изменить цель"
+
+                                        :
+
+                                        roleInfo.key ===
+                                        "doctor"
+
+                                            ?
+
+                                            "Лечить"
+
+                                            :
+
+                                            roleInfo.key ===
+                                            "commissioner"
+
+                                                ?
+
+                                                "Проверить"
+
+                                                :
+
+                                                roleInfo.key ===
+                                                "mistress"
+
+                                                    ?
+
+                                                    "Заблокировать"
+
+                                                    :
+
+                                                    "Выбрать"
+
+                                }
+
                             </button>
 
                         </div>
@@ -1551,32 +2059,25 @@ function renderNightActions() {
                     `;
 
                 }
-            )
-            .join("");
+            );
 
 
-    document
-        .querySelectorAll(
-            "[data-night-action]"
-        )
-        .forEach(button => {
+            html += `
 
-            button.onclick = () => {
+                </div>
 
-                openNightAction(
-                    button.dataset.nightAction
-                );
+            `;
 
-            };
-
-        });
+        }
+    );
 
 
-    box.innerHTML += `
+    html += `
 
         <button
             id="btnResolveNight"
-            class="primary full"
+            type="button"
+            class="primary full night-finish-button"
         >
             Завершить ночь
         </button>
@@ -1584,228 +2085,43 @@ function renderNightActions() {
     `;
 
 
+    box.innerHTML =
+        html;
+
+
+    /*
+        Кнопка каждого игрока
+        работает отдельно.
+    */
+
+    box
+        .querySelectorAll(
+            "[data-save-night]"
+        )
+        .forEach(
+            button => {
+
+                button.onclick = () => {
+
+                    saveNightAction(
+
+                        button.dataset.saveNight,
+
+                        Number(
+                            button.dataset.actorId
+                        )
+
+                    );
+
+                };
+
+            }
+        );
+
+
     $("btnResolveNight")
         .onclick =
-            resolveNight;
-
-}
-
-
-/* =====================================================
-   OPEN NIGHT ACTION
-===================================================== */
-
-function openNightAction(
-    role
-) {
-
-    nightActionType =
-        role;
-
-
-    const actors =
-        aliveRole(role);
-
-
-    if (!actors.length) {
-
-        alert(
-            "Нет живых игроков с этой ролью."
-        );
-
-        return;
-
-    }
-
-
-    /*
-        Кто может быть выбран целью
-    */
-
-    let targets =
-        alive();
-
-
-    /*
-        Доктор не может лечить себя,
-        если настройка отключена.
-    */
-
-    if (
-        role === "doctor" &&
-        !state.doctorSelfHeal
-    ) {
-
-        /*
-            Ограничение будет применяться
-            ниже после выбора конкретного
-            доктора.
-        */
-
-    }
-
-
-    /*
-        Для комиссара нельзя выбирать
-        самого себя.
-    */
-
-    $("nightActorSelect").innerHTML =
-
-        actors
-            .map(
-                player => `
-
-                    <option
-                        value="${player.id}"
-                    >
-                        ${escapeHtml(
-                            player.name
-                        )}
-                    </option>
-
-                `
-            )
-            .join("");
-
-
-    $("nightModalTitle")
-        .textContent =
-
-            role === "mafia"
-                ? "Действие мафии"
-                : role === "doctor"
-                    ? "Действие доктора"
-                    : role === "commissioner"
-                        ? "Проверка комиссара"
-                        : role === "maniac"
-                            ? "Действие маньяка"
-                            : "Действие любовницы";
-
-
-    $("nightModalHint")
-        .textContent =
-
-            role === "mafia"
-                ? "Выберите конкретного игрока-мафию и его цель."
-                : role === "doctor"
-                    ? "Выберите доктора и игрока, которого он лечит."
-                    : role === "commissioner"
-                        ? "Выберите комиссара и игрока для проверки."
-                        : role === "maniac"
-                            ? "Выберите маньяка и его жертву."
-                            : "Выберите любовницу и игрока, которого она блокирует.";
-
-
-    updateNightTargets();
-
-
-    $("nightModal")
-        .classList.add("active");
-
-}
-
-
-/* =====================================================
-   UPDATE NIGHT TARGETS
-===================================================== */
-
-$("nightActorSelect")
-    .addEventListener(
-        "change",
-        updateNightTargets
-    );
-
-
-function updateNightTargets() {
-
-    const role =
-        nightActionType;
-
-
-    if (!role) {
-        return;
-    }
-
-
-    const actorId =
-        Number(
-            $("nightActorSelect")
-                .value
-        );
-
-
-    const actor =
-        getPlayer(actorId);
-
-
-    let targets =
-        alive();
-
-
-    /*
-        Нельзя выбрать себя для:
-
-        комиссара
-        любовницы
-
-        Для мафии и маньяка
-        также исключаем самого себя.
-
-        Доктор — зависит от настройки.
-    */
-
-    if (
-        role === "commissioner" ||
-        role === "mistress" ||
-        role === "mafia" ||
-        role === "maniac"
-    ) {
-
-        targets =
-            targets.filter(
-                player =>
-                    player.id !== actorId
-            );
-
-    }
-
-
-    if (
-        role === "doctor" &&
-        !state.doctorSelfHeal
-    ) {
-
-        targets =
-            targets.filter(
-                player =>
-                    player.id !== actorId
-            );
-
-    }
-
-
-    $("nightTargetSelect")
-        .innerHTML =
-
-            targets
-                .map(
-                    player => `
-
-                        <option
-                            value="${player.id}"
-                        >
-                            ${escapeHtml(
-                                player.name
-                            )}
-                            — ${roleName(
-                                player.role
-                            )}
-                        </option>
-
-                    `
-                )
-                .join("");
+        resolveNight;
 
 }
 
@@ -1814,48 +2130,45 @@ function updateNightTargets() {
    SAVE NIGHT ACTION
 ===================================================== */
 
-$("btnCancelNight")
-    .onclick = () => {
+function saveNightAction(
+    role,
+    actorId
+) {
 
-        $("nightModal")
-            .classList.remove(
-                "active"
-            );
+    const select =
+        document.getElementById(
 
-        nightActionType =
-            null;
+            `night-target-${role}-${actorId}`
 
-    };
-
-
-$("btnSaveNight")
-    .onclick =
-        saveNightAction;
-
-
-function saveNightAction() {
-
-    const role =
-        nightActionType;
-
-
-    if (!role) {
-        return;
-    }
-
-
-    const actorId =
-        Number(
-            $("nightActorSelect")
-                .value
         );
+
+
+    if (!select) {
+
+        alert(
+            "Выбор цели не найден."
+        );
+
+        return;
+
+    }
 
 
     const targetId =
         Number(
-            $("nightTargetSelect")
-                .value
+            select.value
         );
+
+
+    if (!targetId) {
+
+        alert(
+            "Выберите цель."
+        );
+
+        return;
+
+    }
 
 
     const actor =
@@ -1872,7 +2185,7 @@ function saveNightAction() {
     ) {
 
         alert(
-            "Не удалось определить игрока."
+            "Игрок не найден."
         );
 
         return;
@@ -1881,11 +2194,24 @@ function saveNightAction() {
 
 
     if (
-        actor.id === target.id
+        !actor.alive
     ) {
 
         alert(
-            "Игрок не может выбрать себя."
+            "Этот игрок уже выбыл."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !target.alive
+    ) {
+
+        alert(
+            "Нельзя выбрать выбывшего игрока."
         );
 
         return;
@@ -1894,17 +2220,53 @@ function saveNightAction() {
 
 
     /*
-        Проверяем, не совершал ли этот
-        игрок уже действие этой ночью.
+        Только доктор может выбрать себя,
+        если такая настройка включена.
     */
 
-    const existing =
-        state.night[role]
-            .find(
-                action =>
-                    action.actorId ===
-                    actorId
+    if (
+        actor.id ===
+        target.id
+    ) {
+
+        if (
+
+            !(
+                role ===
+                "doctor" &&
+
+                state.doctorSelfHeal
+
+            )
+
+        ) {
+
+            alert(
+                "Игрок не может выбрать себя."
             );
+
+            return;
+
+        }
+
+    }
+
+
+    /*
+        Ищем существующее действие
+        этого конкретного игрока.
+    */
+
+    const actions =
+        state.night[role];
+
+
+    const existing =
+        actions.find(
+            action =>
+                action.actorId ===
+                actorId
+        );
 
 
     if (existing) {
@@ -1917,14 +2279,16 @@ function saveNightAction() {
 
     } else {
 
-        state.night[role].push({
+        actions.push({
 
-            actorId,
+            actorId:
+                actorId,
 
             actorName:
                 actor.name,
 
-            targetId,
+            targetId:
+                targetId,
 
             targetName:
                 target.name
@@ -1935,20 +2299,13 @@ function saveNightAction() {
 
 
     addEvent(
+
         `${roleName(role)} ${actor.name} ` +
-        `выбрал игрока ${target.name}.`,
+        `выбрал цель ${target.name}.`,
+
         "night"
+
     );
-
-
-    $("nightModal")
-        .classList.remove(
-            "active"
-        );
-
-
-    nightActionType =
-        null;
 
 
     renderGame();
@@ -1963,7 +2320,8 @@ function saveNightAction() {
 function resolveNight() {
 
     if (
-        state.phase !== "night"
+        state.phase !==
+        "night"
     ) {
 
         return;
@@ -1972,72 +2330,139 @@ function resolveNight() {
 
 
     /*
-        Проверяем, есть ли хотя бы
-        одно действие.
+        Проверяем, какие роли должны
+        совершить действие.
     */
 
-    const totalActions =
-        Object.values(
-            state.night
+    const requiredActors = {
+
+        mafia:
+            aliveRole("mafia"),
+
+        doctor:
+            aliveRole("doctor"),
+
+        commissioner:
+            aliveRole("commissioner"),
+
+        maniac:
+            aliveRole("maniac"),
+
+        mistress:
+            aliveRole("mistress")
+
+    };
+
+
+    /*
+        Если роль существует, каждый живой
+        игрок этой роли должен выбрать цель.
+    */
+
+    for (
+        const role of Object.keys(
+            requiredActors
         )
-        .reduce(
-            (sum, actions) =>
-                sum + actions.length,
-            0
-        );
+    ) {
+
+        const required =
+            requiredActors[role];
 
 
-    if (!totalActions) {
+        if (
+            required.length === 0
+        ) {
 
-        alert(
-            "Не выполнено ни одного ночного действия."
-        );
+            continue;
 
-        return;
+        }
+
+
+        const actions =
+            state.night[role];
+
+
+        const completedActorIds =
+            new Set(
+
+                actions.map(
+                    action =>
+                        action.actorId
+                )
+
+            );
+
+
+        const missing =
+            required.filter(
+
+                player =>
+                    !completedActorIds.has(
+                        player.id
+                    )
+
+            );
+
+
+        if (
+            missing.length
+        ) {
+
+            alert(
+
+                `${roleName(role)}: ` +
+
+                `не выбрали цель ` +
+
+                `следующие игроки:\n\n` +
+
+                missing
+                    .map(
+                        player =>
+                            player.name
+                    )
+                    .join("\n")
+
+            );
+
+
+            return;
+
+        }
 
     }
 
 
     /*
-        1. Определяем любовниц,
-        которые сами не заблокированы.
+        1. Определяем заблокированных.
     */
-
-    const mistressActions =
-        state.night.mistress;
-
 
     const blockedIds =
         new Set();
 
 
-    mistressActions.forEach(
-        action => {
+    state.night.mistress
+        .forEach(
+            action => {
 
-            /*
-                Любовница сама не может
-                заблокировать себя.
+                blockedIds.add(
+                    action.targetId
+                );
 
-                Она блокирует выбранного
-                игрока.
-            */
-
-            blockedIds.add(
-                action.targetId
-            );
-
-        }
-    );
+            }
+        );
 
 
     /*
-        2. Определяем действия
-        заблокированных игроков.
-    */
+        2. МАФИЯ
 
+        Если несколько мафий выбрали
+        одну цель — она получает
+        соответствующее количество голосов.
 
-    /*
-        МАФИЯ
+        Побеждает цель с большинством.
+
+        При ничьей убийства нет.
     */
 
     const activeMafia =
@@ -2050,14 +2475,6 @@ function resolveNight() {
             );
 
 
-    /*
-        Все мафии должны выбрать
-        одну и ту же цель.
-
-        Если голоса разделились
-        поровну — убийства нет.
-    */
-
     let mafiaTarget =
         null;
 
@@ -2066,40 +2483,42 @@ function resolveNight() {
         activeMafia.length
     ) {
 
-        const targetCounts = {};
+        const counts = {};
 
 
-        activeMafia.forEach(
-            action => {
+        activeMafia
+            .forEach(
+                action => {
 
-                targetCounts[
-                    action.targetId
-                ] =
-                    (
-                        targetCounts[
-                            action.targetId
-                        ] || 0
-                    ) + 1;
+                    counts[
+                        action.targetId
+                    ] =
 
-            }
-        );
+                        (
+                            counts[
+                                action.targetId
+                            ] || 0
+                        ) + 1;
+
+                }
+            );
 
 
-        const max =
+        const maxVotes =
             Math.max(
                 ...Object.values(
-                    targetCounts
+                    counts
                 )
             );
 
 
         const leaders =
             Object.entries(
-                targetCounts
+                counts
             )
             .filter(
                 ([, count]) =>
-                    count === max
+                    count === maxVotes
             );
 
 
@@ -2115,8 +2534,12 @@ function resolveNight() {
         } else {
 
             addEvent(
-                "Мафия не смогла выбрать единую цель. Убийство не состоялось.",
+
+                "Мафия не смогла выбрать " +
+                "единую цель. Убийство не состоялось.",
+
                 "night"
+
             );
 
         }
@@ -2125,21 +2548,7 @@ function resolveNight() {
 
 
     /*
-        МАНЬЯКИ
-    */
-
-    const activeManiacs =
-        state.night.maniac
-            .filter(
-                action =>
-                    !blockedIds.has(
-                        action.actorId
-                    )
-            );
-
-
-    /*
-        ДОКТОРЫ
+        3. ДОКТОР
     */
 
     const activeDoctors =
@@ -2156,34 +2565,40 @@ function resolveNight() {
         new Set();
 
 
-    activeDoctors.forEach(
-        action => {
+    activeDoctors
+        .forEach(
+            action => {
 
-            protectedIds.add(
-                action.targetId
-            );
-
-            const target =
-                getPlayer(
+                protectedIds.add(
                     action.targetId
                 );
 
 
-            if (target) {
+                const target =
+                    getPlayer(
+                        action.targetId
+                    );
 
-                addEvent(
-                    `${target.name} защищён доктором.`,
-                    "night"
-                );
+
+                if (target) {
+
+                    addEvent(
+
+                        `${target.name} ` +
+                        `защищён доктором.`,
+
+                        "night"
+
+                    );
+
+                }
 
             }
-
-        }
-    );
+        );
 
 
     /*
-        КОМИССАРЫ
+        4. КОМИССАР
     */
 
     const activeCommissioners =
@@ -2196,67 +2611,95 @@ function resolveNight() {
             );
 
 
-    activeCommissioners.forEach(
-        action => {
+    activeCommissioners
+        .forEach(
+            action => {
 
-            const target =
-                getPlayer(
-                    action.targetId
+                const target =
+                    getPlayer(
+                        action.targetId
+                    );
+
+
+                if (!target) {
+
+                    return;
+
+                }
+
+
+                const result =
+
+                    target.role ===
+                    "mafia"
+
+                        ?
+
+                        "МАФИЯ"
+
+                        :
+
+                        "НЕ МАФИЯ";
+
+
+                addEvent(
+
+                    `Комиссар проверил ` +
+                    `${target.name}.`,
+
+                    "night"
+
                 );
 
 
-            if (!target) {
-                return;
+                alert(
+
+                    `Проверка комиссара\n\n` +
+
+                    `${target.name}\n\n` +
+
+                    `Результат: ${result}`
+
+                );
+
             }
-
-
-            const result =
-                target.role === "mafia"
-                    ? "МАФИЯ"
-                    : "НЕ МАФИЯ";
-
-
-            addEvent(
-                `Комиссар проверил ${target.name}. Результат: ${result}.`,
-                "night"
-            );
-
-
-            /*
-                Показываем ведущему результат.
-            */
-
-            alert(
-                `Проверка комиссара\n\n` +
-                `${target.name}\n\n` +
-                `Результат: ${result}`
-            );
-
-        }
-    );
+        );
 
 
     /*
-        Список всех убийств.
+        5. МАНЬЯК
+    */
+
+    const activeManiacs =
+        state.night.maniac
+            .filter(
+                action =>
+                    !blockedIds.has(
+                        action.actorId
+                    )
+            );
+
+
+    /*
+        6. Список убийств.
     */
 
     const kills = [];
 
 
-    /*
-        Убийство мафией.
-    */
-
     if (
+
         mafiaTarget !== null &&
+
         !protectedIds.has(
             mafiaTarget
         )
+
     ) {
 
         kills.push({
 
-            id:
+            playerId:
                 mafiaTarget,
 
             reason:
@@ -2267,38 +2710,36 @@ function resolveNight() {
     }
 
 
-    /*
-        Убийство маньяками.
-    */
+    activeManiacs
+        .forEach(
+            action => {
 
-    activeManiacs.forEach(
-        action => {
+                if (
+                    !protectedIds.has(
+                        action.targetId
+                    )
+                ) {
 
-            if (
-                !protectedIds.has(
-                    action.targetId
-                )
-            ) {
+                    kills.push({
 
-                kills.push({
+                        playerId:
+                            action.targetId,
 
-                    id:
-                        action.targetId,
+                        reason:
+                            "Убит маньяком"
 
-                    reason:
-                        "Убит маньяком"
+                    });
 
-                });
+                }
 
             }
-
-        }
-    );
+        );
 
 
     /*
-        Убираем повторные убийства
-        одного игрока.
+        7. Если два убийства
+        пришлись в одного игрока —
+        выводим его один раз.
     */
 
     const uniqueKills =
@@ -2310,13 +2751,16 @@ function resolveNight() {
 
             if (
                 !uniqueKills.has(
-                    kill.id
+                    kill.playerId
                 )
             ) {
 
                 uniqueKills.set(
-                    kill.id,
+
+                    kill.playerId,
+
                     kill
+
                 );
 
             }
@@ -2326,53 +2770,58 @@ function resolveNight() {
 
 
     /*
-        Применяем убийства.
+        8. Применяем убийства.
     */
 
-    uniqueKills.forEach(
-        kill => {
+    uniqueKills
+        .forEach(
+            kill => {
 
-            const victim =
-                getPlayer(
-                    kill.id
+                const victim =
+                    getPlayer(
+                        kill.playerId
+                    );
+
+
+                if (
+                    !victim ||
+                    !victim.alive
+                ) {
+
+                    return;
+
+                }
+
+
+                victim.alive =
+                    false;
+
+
+                victim.eliminatedAt =
+                    new Date()
+                        .toISOString();
+
+
+                victim.eliminationReason =
+                    kill.reason;
+
+
+                addEvent(
+
+                    `${victim.name} ` +
+                    `выбыл ночью. ` +
+                    `Причина: ${kill.reason}.`,
+
+                    "night"
+
                 );
 
-
-            if (
-                !victim ||
-                !victim.alive
-            ) {
-
-                return;
-
             }
-
-
-            victim.alive =
-                false;
-
-
-            victim.eliminatedAt =
-                new Date()
-                    .toISOString();
-
-
-            victim.eliminationReason =
-                kill.reason;
-
-
-            addEvent(
-                `${victim.name} выбыл ночью. ` +
-                `Причина: ${kill.reason}.`,
-                "night"
-            );
-
-        }
-    );
+        );
 
 
     /*
-        Очищаем ночные действия.
+        9. Очищаем ночные действия.
     */
 
     state.night = {
@@ -2391,7 +2840,7 @@ function resolveNight() {
 
 
     /*
-        Проверяем победу.
+        10. Проверяем победу.
     */
 
     if (
@@ -2404,7 +2853,7 @@ function resolveNight() {
 
 
     /*
-        Переходим к дню.
+        11. Переход ко дню.
     */
 
     state.phase =
@@ -2420,9 +2869,13 @@ function resolveNight() {
 
 
     showPhaseOverlay(
+
         "day",
+
         `ДЕНЬ ${state.round}`,
+
         "Наступило утро"
+
     );
 
 }
@@ -2434,7 +2887,7 @@ function resolveNight() {
 
 $("btnVoting")
     .onclick =
-        openVoting;
+    openVoting;
 
 
 function openVoting() {
@@ -2450,7 +2903,8 @@ function openVoting() {
 
 
     if (
-        state.phase !== "day"
+        state.phase !==
+        "day"
     ) {
 
         alert(
@@ -2463,11 +2917,11 @@ function openVoting() {
 
 
     const voters =
-        alive();
+        alivePlayers();
 
 
     const candidates =
-        alive();
+        alivePlayers();
 
 
     $("voterSelect")
@@ -2531,7 +2985,7 @@ $("btnCancelVote")
 
 $("btnSaveVote")
     .onclick =
-        saveVote;
+    saveVote;
 
 
 function saveVote() {
@@ -2550,6 +3004,50 @@ function saveVote() {
         );
 
 
+    const voter =
+        getPlayer(
+            voterId
+        );
+
+
+    const candidate =
+        getPlayer(
+            candidateId
+        );
+
+
+    if (
+        !voter ||
+        !candidate
+    ) {
+
+        return;
+
+    }
+
+
+    if (!voter.alive) {
+
+        alert(
+            "Выбывший игрок не может голосовать."
+        );
+
+        return;
+
+    }
+
+
+    if (!candidate.alive) {
+
+        alert(
+            "Нельзя голосовать за выбывшего игрока."
+        );
+
+        return;
+
+    }
+
+
     if (
         voterId ===
         candidateId
@@ -2564,39 +3062,25 @@ function saveVote() {
     }
 
 
-    const voter =
-        getPlayer(voterId);
-
-
-    const candidate =
-        getPlayer(candidateId);
-
-
-    if (
-        !voter ||
-        !candidate
-    ) {
-
-        return;
-
-    }
-
-
     /*
-        Один игрок может иметь
-        только один голос за раунд.
+        Один игрок имеет один голос
+        в текущем раунде.
 
-        Если голос уже был —
-        изменяем его.
+        Если голос уже существует,
+        он изменяется.
     */
 
     const existing =
         state.votes.find(
+
             vote =>
+
                 vote.voterId ===
-                    voterId &&
+                voterId &&
+
                 vote.round ===
-                    state.round
+                state.round
+
         );
 
 
@@ -2609,22 +3093,18 @@ function saveVote() {
         existing.candidateName =
             candidate.name;
 
-
-        addEvent(
-            `${voter.name} изменил голос на ${candidate.name}.`,
-            "vote"
-        );
-
     } else {
 
         state.votes.push({
 
-            voterId,
+            voterId:
+                voterId,
 
             voterName:
                 voter.name,
 
-            candidateId,
+            candidateId:
+                candidateId,
 
             candidateName:
                 candidate.name,
@@ -2638,13 +3118,19 @@ function saveVote() {
 
         });
 
-
-        addEvent(
-            `${voter.name} проголосовал за ${candidate.name}.`,
-            "vote"
-        );
-
     }
+
+
+    /*
+        Здесь специально НЕ добавляем
+        в историю:
+
+        "Игрок 1 проголосовал
+        за Игрока 5"
+
+        Эта информация остаётся
+        только внутри state.votes.
+    */
 
 
     $("votingModal")
@@ -2659,40 +3145,43 @@ function saveVote() {
 
 
 /* =====================================================
-   GET VOTES
+   VOTE COUNTS
 ===================================================== */
 
-function getVotes() {
+function getCurrentVoteCounts() {
 
-    const result = {};
+    const counts = {};
 
 
-    alive().forEach(
-        player => {
+    alivePlayers()
+        .forEach(
+            player => {
 
-            result[player.id] =
-                0;
+                counts[player.id] =
+                    0;
 
-        }
-    );
+            }
+        );
 
 
     state.votes
         .filter(
+
             vote =>
                 vote.round ===
                 state.round
+
         )
         .forEach(
             vote => {
 
                 if (
-                    result[
+                    counts[
                         vote.candidateId
                     ] !== undefined
                 ) {
 
-                    result[
+                    counts[
                         vote.candidateId
                     ]++;
 
@@ -2702,7 +3191,155 @@ function getVotes() {
         );
 
 
-    return result;
+    return counts;
+
+}
+
+
+/* =====================================================
+   RENDER VOTING
+===================================================== */
+
+function renderVoting() {
+
+    const box =
+        $("votingContainer");
+
+
+    const currentVotes =
+        state.votes.filter(
+
+            vote =>
+                vote.round ===
+                state.round
+
+        );
+
+
+    const counts =
+        getCurrentVoteCounts();
+
+
+    if (
+        !currentVotes.length
+    ) {
+
+        box.innerHTML = `
+
+            <div class="empty">
+
+                Голосование ещё
+                не началось.
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    /*
+        Только итоговые голоса.
+
+        НИКАКИХ:
+
+        Игрок 1 → Игрок 5
+        Игрок 2 → Игрок 5
+    */
+
+    const sorted =
+        alivePlayers()
+            .sort(
+
+                (a, b) =>
+
+                    (
+                        counts[b.id] || 0
+                    )
+
+                    -
+
+                    (
+                        counts[a.id] || 0
+                    )
+
+            );
+
+
+    box.innerHTML = `
+
+        <div class="vote-summary">
+
+            ${sorted
+                .map(
+                    player => `
+
+                        <div
+                            class="vote-row"
+                        >
+
+                            <span>
+
+                                ${escapeHtml(
+                                    player.name
+                                )}
+
+                            </span>
+
+
+                            <strong
+                                class="vote-count"
+                            >
+
+                                ${
+                                    counts[
+                                        player.id
+                                    ] || 0
+                                }
+
+                            </strong>
+
+                        </div>
+
+                    `
+                )
+                .join("")}
+
+
+            <div
+                class="vote-total"
+            >
+
+                Проголосовало:
+
+                ${currentVotes.length}
+
+                из
+
+                ${alivePlayers().length}
+
+            </div>
+
+
+            <button
+                id="btnFinishVoting"
+                type="button"
+                class="primary full"
+            >
+                Завершить голосование
+            </button>
+
+        </div>
+
+    `;
+
+
+    $("btnFinishVoting")
+        .onclick =
+        finishVoting;
+
 }
 
 
@@ -2712,11 +3349,11 @@ function getVotes() {
 
 function finishVoting() {
 
-    const votes =
-        getVotes();
+    const counts =
+        getCurrentVoteCounts();
 
 
-    let max =
+    let maxVotes =
         0;
 
 
@@ -2724,40 +3361,46 @@ function finishVoting() {
         [];
 
 
-    alive().forEach(
-        player => {
+    alivePlayers()
+        .forEach(
+            player => {
 
-            const count =
-                votes[player.id] || 0;
+                const count =
+                    counts[player.id] || 0;
 
 
-            if (
-                count > max
-            ) {
+                if (
+                    count >
+                    maxVotes
+                ) {
 
-                max =
-                    count;
+                    maxVotes =
+                        count;
 
-                leaders =
-                    [player];
+                    leaders =
+                        [player];
 
-            } else if (
-                count === max &&
-                count > 0
-            ) {
+                } else if (
 
-                leaders.push(
-                    player
-                );
+                    count ===
+                    maxVotes &&
+
+                    count > 0
+
+                ) {
+
+                    leaders.push(
+                        player
+                    );
+
+                }
 
             }
-
-        }
-    );
+        );
 
 
     if (
-        max === 0
+        maxVotes === 0
     ) {
 
         alert(
@@ -2770,7 +3413,7 @@ function finishVoting() {
 
 
     /*
-        Ничья.
+        НИЧЬЯ
     */
 
     if (
@@ -2778,19 +3421,21 @@ function finishVoting() {
     ) {
 
         addEvent(
+
             `Ничья голосования: ` +
+
             `${leaders
                 .map(
                     player =>
                         player.name
                 )
                 .join(", ")}.`
+
         );
 
 
         alert(
-            `Ничья.\n\n` +
-            `Никто не выбывает.`
+            "Ничья.\n\nНикто не выбывает."
         );
 
 
@@ -2806,7 +3451,7 @@ function finishVoting() {
 
 
     /*
-        Один победитель голосования.
+        ПОБЕДИТЕЛЬ ГОЛОСОВАНИЯ
     */
 
     const eliminated =
@@ -2827,8 +3472,13 @@ function finishVoting() {
 
 
     addEvent(
-        `${eliminated.name} выбыл по голосованию. ` +
-        `Получено голосов: ${max}.`
+
+        `${eliminated.name} ` +
+
+        `выбыл по голосованию. ` +
+
+        `Получено голосов: ${maxVotes}.`
+
     );
 
 
@@ -2850,149 +3500,18 @@ function finishVoting() {
 
 
 /* =====================================================
-   RENDER VOTING
-===================================================== */
-
-function renderVoting() {
-
-    const box =
-        $("votingContainer");
-
-
-    const currentVotes =
-        state.votes.filter(
-            vote =>
-                vote.round ===
-                state.round
-        );
-
-
-    const counts =
-        getVotes();
-
-
-    if (
-        !currentVotes.length
-    ) {
-
-        box.innerHTML = `
-
-            <div class="empty">
-
-                Голосование ещё
-                не проводилось
-                в этом раунде.
-
-            </div>
-
-        `;
-
-        return;
-
-    }
-
-
-    box.innerHTML =
-
-        alive()
-            .map(
-                player => `
-
-                    <div class="vote-row">
-
-                        <span>
-                            ${escapeHtml(
-                                player.name
-                            )}
-                        </span>
-
-                        <span class="vote-count">
-                            ${
-                                counts[
-                                    player.id
-                                ] || 0
-                            }
-                        </span>
-
-                    </div>
-
-                `
-            )
-            .join("")
-
-
-        +
-
-
-        `
-
-            <div class="vote-total">
-
-                Проголосовало:
-                ${currentVotes.length}
-                из
-                ${alive().length}
-
-            </div>
-
-
-            <button
-                id="btnFinishVoting"
-                class="primary full"
-            >
-                Завершить голосование
-            </button>
-
-
-            <div class="vote-list">
-
-                ${currentVotes
-                    .map(
-                        vote => `
-
-                            <div class="vote-detail">
-
-                                ${escapeHtml(
-                                    vote.voterName
-                                )}
-
-                                →
-
-                                ${escapeHtml(
-                                    vote.candidateName
-                                )}
-
-                            </div>
-
-                        `
-                    )
-                    .join("")}
-
-            </div>
-
-        `;
-
-
-    $("btnFinishVoting")
-        .onclick =
-            finishVoting;
-
-}
-
-
-/* =====================================================
    INTERACTIONS
 ===================================================== */
 
 $("btnAddInteraction")
     .onclick =
-        openInteraction;
+    openInteraction;
 
 
 function openInteraction() {
 
     const players =
-        alive();
+        alivePlayers();
 
 
     $("interactionActor")
@@ -3005,13 +3524,17 @@ function openInteraction() {
                         <option
                             value="${player.id}"
                         >
+
                             ${escapeHtml(
                                 player.name
                             )}
+
                             —
+
                             ${roleName(
                                 player.role
                             )}
+
                         </option>
 
                     `
@@ -3029,13 +3552,17 @@ function openInteraction() {
                         <option
                             value="${player.id}"
                         >
+
                             ${escapeHtml(
                                 player.name
                             )}
+
                             —
+
                             ${roleName(
                                 player.role
                             )}
+
                         </option>
 
                     `
@@ -3068,7 +3595,7 @@ $("btnCancelInteraction")
 
 $("btnSaveInteraction")
     .onclick =
-        saveInteraction;
+    saveInteraction;
 
 
 function saveInteraction() {
@@ -3119,11 +3646,25 @@ function saveInteraction() {
 
 
     const actor =
-        getPlayer(actorId);
+        getPlayer(
+            actorId
+        );
 
 
     const target =
-        getPlayer(targetId);
+        getPlayer(
+            targetId
+        );
+
+
+    if (
+        !actor ||
+        !target
+    ) {
+
+        return;
+
+    }
 
 
     state.interactions.push({
@@ -3156,9 +3697,13 @@ function saveInteraction() {
 
 
     addEvent(
+
         `${actor.name} → ` +
+
         `${target.name}: ` +
+
         `${description}.`
+
     );
 
 
@@ -3207,43 +3752,48 @@ function renderInteractions(
     const map = {};
 
 
-    state.interactions.forEach(
-        interaction => {
+    state.interactions
+        .forEach(
+            interaction => {
 
-            const key =
-                `${interaction.actorRole}|` +
-                `${interaction.actorId}|` +
-                `${interaction.targetId}`;
+                const key =
+
+                    `${interaction.actorId}|` +
+
+                    `${interaction.targetId}`;
 
 
-            if (!map[key]) {
+                if (
+                    !map[key]
+                ) {
 
-                map[key] = {
+                    map[key] = {
 
-                    actorName:
-                        interaction.actorName,
+                        actorName:
+                            interaction.actorName,
 
-                    actorRole:
-                        interaction.actorRole,
+                        actorRole:
+                            interaction.actorRole,
 
-                    targetName:
-                        interaction.targetName,
+                        targetName:
+                            interaction.targetName,
 
-                    targetRole:
-                        interaction.targetRole,
+                        targetRole:
+                            interaction.targetRole,
 
-                    count:
-                        0
+                        count:
+                            0
 
-                };
+                    };
+
+                }
+
+
+                map[key]
+                    .count++;
 
             }
-
-
-            map[key].count++;
-
-        }
-    );
+        );
 
 
     const byRole = {};
@@ -3282,7 +3832,12 @@ function renderInteractions(
             byRole
         )
         .map(
-            ([role, items]) => `
+            (
+                [
+                    role,
+                    items
+                ]
+            ) => `
 
                 <div
                     class="interaction-stat-card"
@@ -3291,7 +3846,9 @@ function renderInteractions(
                     <div
                         class="interaction-role"
                     >
+
                         ${roleName(role)}
+
                     </div>
 
 
@@ -3318,9 +3875,11 @@ function renderInteractions(
                                         <br>
 
                                         <small>
+
                                             ${roleName(
                                                 item.targetRole
                                             )}
+
                                         </small>
 
                                     </span>
@@ -3329,8 +3888,10 @@ function renderInteractions(
                                     <span
                                         class="interaction-count"
                                     >
+
                                         ${item.count}
                                         раз
+
                                     </span>
 
                                 </div>
@@ -3359,60 +3920,68 @@ function renderHistory() {
 
             state.events.length
 
-            ?
+                ?
 
-            state.events
-                .map(
-                    event => `
-
-                        <div class="event">
+                state.events
+                    .map(
+                        event => `
 
                             <div
-                                class="event-time"
+                                class="event"
                             >
 
-                                ${event.time}
+                                <div
+                                    class="event-time"
+                                >
 
-                                ·
+                                    ${event.time}
 
-                                Раунд
-                                ${event.round}
+                                    ·
 
-                                ·
+                                    Раунд
+                                    ${event.round}
 
-                                ${
-                                    event.phase ===
-                                    "night"
+                                    ·
 
-                                    ? "Ночь"
+                                    ${
+                                        event.phase ===
+                                        "night"
 
-                                    : "День"
-                                }
+                                            ?
+
+                                            "Ночь"
+
+                                            :
+
+                                            "День"
+                                    }
+
+                                </div>
+
+
+                                ${escapeHtml(
+                                    event.text
+                                )}
 
                             </div>
 
+                        `
+                    )
+                    .join("")
 
-                            ${escapeHtml(
-                                event.text
-                            )}
+                :
 
-                        </div>
+                `
 
-                    `
-                )
-                .join("")
+                    <div
+                        class="empty"
+                    >
 
-            :
+                        История пока пуста.
 
-            `
+                    </div>
 
-                <div class="empty">
-
-                    История пока пуста.
-
-                </div>
-
-            `;
+                `;
 
 }
 
@@ -3424,14 +3993,16 @@ function renderHistory() {
 function checkWinner() {
 
     const players =
-        alive();
+        alivePlayers();
 
 
     const mafia =
         players.filter(
+
             player =>
                 player.role ===
                 "mafia"
+
         ).length;
 
 
@@ -3441,7 +4012,7 @@ function checkWinner() {
 
 
     /*
-        Мафия уничтожена.
+        Мафии больше нет.
     */
 
     if (
@@ -3458,12 +4029,13 @@ function checkWinner() {
 
 
     /*
-        Мафия получила
-        численное равенство.
+        Мафия получила численное
+        преимущество или равенство.
     */
 
     if (
-        mafia >= nonMafia
+        mafia >=
+        nonMafia
     ) {
 
         finishGame(
@@ -3542,106 +4114,6 @@ function finishGame(
 
 
 /* =====================================================
-   RENDER GAME
-===================================================== */
-
-function renderGame() {
-
-    const players =
-        alive();
-
-
-    $("totalCount")
-        .textContent =
-            state.players.length;
-
-
-    $("aliveCount")
-        .textContent =
-            players.length;
-
-
-    $("deadCount")
-        .textContent =
-            state.players.length -
-            players.length;
-
-
-    $("roundCount")
-        .textContent =
-            state.round;
-
-
-    if (
-        state.phase ===
-        "night"
-    ) {
-
-        $("phaseTitle")
-            .textContent =
-                `Ночь ${state.round}`;
-
-    } else if (
-        state.phase ===
-        "day"
-    ) {
-
-        $("phaseTitle")
-            .textContent =
-                `День ${state.round}`;
-
-    } else if (
-        state.phase ===
-        "finished"
-    ) {
-
-        $("phaseTitle")
-            .textContent =
-                "Игра окончена";
-
-    } else {
-
-        $("phaseTitle")
-            .textContent =
-                "Подготовка";
-
-    }
-
-
-    /*
-        Панель ролей показываем
-        только до начала игры.
-    */
-
-    $("setupPanel").style.display =
-        state.started
-            ? "none"
-            : "block";
-
-
-    if (
-        !state.started
-    ) {
-
-        renderRoleConfig();
-
-    }
-
-
-    renderPlayers();
-
-    renderNightActions();
-
-    renderVoting();
-
-    renderHistory();
-
-    renderInteractions();
-
-}
-
-
-/* =====================================================
    RESULTS
 ===================================================== */
 
@@ -3659,7 +4131,10 @@ function renderResults() {
         winnerText =
             "Победила мафия.";
 
-    } else if (
+    }
+
+
+    if (
         state.winner ===
         "civilians"
     ) {
@@ -3667,7 +4142,10 @@ function renderResults() {
         winnerText =
             "Победили мирные.";
 
-    } else if (
+    }
+
+
+    if (
         state.winner ===
         "manual"
     ) {
@@ -3680,29 +4158,33 @@ function renderResults() {
 
     $("resultsWinner")
         .textContent =
-            winnerText;
+        winnerText;
 
-
-    /*
-        Считаем голоса за игрока
-        за всю игру.
-    */
 
     const voteTotals = {};
 
 
-    state.players.forEach(
-        player => {
+    state.players
+        .forEach(
+            player => {
 
-            voteTotals[player.id] =
-                state.votes.filter(
-                    vote =>
-                        vote.candidateId ===
-                        player.id
-                ).length;
+                voteTotals[
+                    player.id
+                ] =
 
-        }
-    );
+                    state.votes
+                        .filter(
+
+                            vote =>
+
+                                vote.candidateId ===
+                                player.id
+
+                        )
+                        .length;
+
+            }
+        );
 
 
     $("resultsContainer")
@@ -3712,7 +4194,9 @@ function renderResults() {
                 .map(
                     player => `
 
-                        <div class="result-card">
+                        <div
+                            class="result-card"
+                        >
 
                             <div
                                 class="result-top"
@@ -3723,31 +4207,37 @@ function renderResults() {
                                     <div
                                         class="player-name"
                                     >
+
                                         ${escapeHtml(
                                             player.name
                                         )}
+
                                     </div>
 
 
                                     <div
                                         class="player-role"
                                     >
+
                                         ${
                                             (
                                                 !player.alive &&
-                                                !state.showRoleAfterDeath
+
+                                                !state
+                                                    .showRoleAfterDeath
                                             )
 
-                                            ?
+                                                ?
 
-                                            "Роль скрыта"
+                                                "Роль скрыта"
 
-                                            :
+                                                :
 
-                                            roleName(
-                                                player.role
-                                            )
+                                                roleName(
+                                                    player.role
+                                                )
                                         }
+
                                     </div>
 
                                 </div>
@@ -3758,12 +4248,15 @@ function renderResults() {
                                 >
 
                                     <strong>
+
                                         ${
                                             voteTotals[
                                                 player.id
                                             ]
                                         }
+
                                     </strong>
+
 
                                     <span>
                                         голосов
@@ -3787,8 +4280,14 @@ function renderResults() {
 
                                 ${
                                     player.alive
-                                        ? "Остался в игре"
-                                        : "Выбыл"
+
+                                        ?
+
+                                        "Остался в игре"
+
+                                        :
+
+                                        "Выбыл"
                                 }
 
                             </div>
@@ -3814,16 +4313,20 @@ function renderResults() {
 $("btnGameMenu")
     .onclick = () => {
 
-        $("doctorSelfHeal").value =
-            state.doctorSelfHeal
-                ? "yes"
-                : "no";
+        $("doctorSelfHeal")
+            .value =
+
+                state.doctorSelfHeal
+                    ? "yes"
+                    : "no";
 
 
-        $("showRoleAfterDeath").value =
-            state.showRoleAfterDeath
-                ? "yes"
-                : "no";
+        $("showRoleAfterDeath")
+            .value =
+
+                state.showRoleAfterDeath
+                    ? "yes"
+                    : "no";
 
 
         $("menuModal")
@@ -3838,12 +4341,14 @@ $("btnCloseMenu")
     .onclick = () => {
 
         state.doctorSelfHeal =
+
             $("doctorSelfHeal")
                 .value ===
             "yes";
 
 
         state.showRoleAfterDeath =
+
             $("showRoleAfterDeath")
                 .value ===
             "yes";
@@ -3931,12 +4436,244 @@ $("btnNewGame")
 
 
 /* =====================================================
-   INITIALIZE
+   RENDER GAME
+===================================================== */
+
+function renderGame() {
+
+    const players =
+        alivePlayers();
+
+
+    $("totalCount")
+        .textContent =
+        state.players.length;
+
+
+    $("aliveCount")
+        .textContent =
+        players.length;
+
+
+    $("deadCount")
+        .textContent =
+
+            state.players.length -
+            players.length;
+
+
+    $("roundCount")
+        .textContent =
+        state.round;
+
+
+    if (
+        state.phase ===
+        "night"
+    ) {
+
+        $("phaseTitle")
+            .textContent =
+            `Ночь ${state.round}`;
+
+    } else if (
+        state.phase ===
+        "day"
+    ) {
+
+        $("phaseTitle")
+            .textContent =
+            `День ${state.round}`;
+
+    } else if (
+        state.phase ===
+        "finished"
+    ) {
+
+        $("phaseTitle")
+            .textContent =
+            "Игра окончена";
+
+    } else {
+
+        $("phaseTitle")
+            .textContent =
+            "Подготовка";
+
+    }
+
+
+    /*
+        Настройка ролей доступна
+        только до запуска партии.
+    */
+
+    $("setupPanel")
+        .style.display =
+
+            state.started
+                ? "none"
+                : "block";
+
+
+    if (
+        !state.started
+    ) {
+
+        renderRoleConfig();
+
+    }
+
+
+    renderPlayers();
+
+    renderNightActions();
+
+    renderVoting();
+
+    renderHistory();
+
+    renderInteractions();
+
+}
+
+
+/* =====================================================
+   MENU / SETTINGS
+===================================================== */
+
+$("btnGameMenu")
+    .onclick = () => {
+
+        $("doctorSelfHeal")
+            .value =
+
+                state.doctorSelfHeal
+                    ? "yes"
+                    : "no";
+
+
+        $("showRoleAfterDeath")
+            .value =
+
+                state.showRoleAfterDeath
+                    ? "yes"
+                    : "no";
+
+
+        $("menuModal")
+            .classList.add(
+                "active"
+            );
+
+    };
+
+
+$("btnCloseMenu")
+    .onclick = () => {
+
+        state.doctorSelfHeal =
+
+            $("doctorSelfHeal")
+                .value ===
+            "yes";
+
+
+        state.showRoleAfterDeath =
+
+            $("showRoleAfterDeath")
+                .value ===
+            "yes";
+
+
+        $("menuModal")
+            .classList.remove(
+                "active"
+            );
+
+
+        renderGame();
+
+    };
+
+
+/* =====================================================
+   END GAME
+===================================================== */
+
+$("btnEndGame")
+    .onclick = () => {
+
+        if (
+            !confirm(
+                "Завершить игру?"
+            )
+        ) {
+
+            return;
+
+        }
+
+
+        state.winner =
+            "manual";
+
+
+        state.finished =
+            true;
+
+
+        state.started =
+            false;
+
+
+        state.phase =
+            "finished";
+
+
+        addEvent(
+            "Игра завершена ведущим."
+        );
+
+
+        renderResults();
+
+
+        showScreen(
+            "screen-results"
+        );
+
+    };
+
+
+/* =====================================================
+   NEW GAME
+===================================================== */
+
+$("btnNewGame")
+    .onclick = () => {
+
+        selectedPlayerCount =
+            6;
+
+
+        updatePlayerCount();
+
+
+        showScreen(
+            "screen-start"
+        );
+
+    };
+
+
+/* =====================================================
+   INIT
 ===================================================== */
 
 updatePlayerCount();
 
 
 console.log(
-    "MAFIA ROOM — game engine initialized"
+    "MAFIA ROOM — готово"
 );
