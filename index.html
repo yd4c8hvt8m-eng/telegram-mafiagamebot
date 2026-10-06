@@ -70,6 +70,7 @@
                 <button
                     id="btnCountMinus"
                     class="counter-btn"
+                    type="button"
                 >
                     −
                 </button>
@@ -86,6 +87,7 @@
                 <button
                     id="btnCountPlus"
                     class="counter-btn"
+                    type="button"
                 >
                     +
                 </button>
@@ -103,11 +105,13 @@
         <button
             id="btnCreateGame"
             class="primary full"
+            type="button"
         >
             Создать игру
         </button>
 
     </section>
+
 
 
     <!-- =====================================================
@@ -141,6 +145,7 @@
             <button
                 id="btnGameMenu"
                 class="icon-btn"
+                type="button"
             >
                 ⋮
             </button>
@@ -148,11 +153,13 @@
         </header>
 
 
+
         <!-- СТАТИСТИКА -->
 
         <div class="stats">
 
             <div>
+
                 <strong id="totalCount">
                     0
                 </strong>
@@ -160,10 +167,12 @@
                 <span>
                     Всего
                 </span>
+
             </div>
 
 
             <div>
+
                 <strong id="aliveCount">
                     0
                 </strong>
@@ -171,10 +180,12 @@
                 <span>
                     Живых
                 </span>
+
             </div>
 
 
             <div>
+
                 <strong id="deadCount">
                     0
                 </strong>
@@ -182,10 +193,12 @@
                 <span>
                     Выбыло
                 </span>
+
             </div>
 
 
             <div>
+
                 <strong id="roundCount">
                     0
                 </strong>
@@ -193,9 +206,11 @@
                 <span>
                     Раунд
                 </span>
+
             </div>
 
         </div>
+
 
 
         <!-- УПРАВЛЕНИЕ ФАЗОЙ -->
@@ -205,6 +220,7 @@
             <button
                 id="btnStartDay"
                 class="secondary"
+                type="button"
             >
                 День
             </button>
@@ -213,6 +229,7 @@
             <button
                 id="btnStartNight"
                 class="secondary"
+                type="button"
             >
                 Ночь
             </button>
@@ -221,11 +238,13 @@
             <button
                 id="btnVoting"
                 class="primary"
+                type="button"
             >
                 Голосование
             </button>
 
         </div>
+
 
 
         <!-- НАСТРОЙКА РОЛЕЙ -->
@@ -252,11 +271,13 @@
             <button
                 id="btnApplyRoles"
                 class="primary full"
+                type="button"
             >
                 Применить состав
             </button>
 
         </div>
+
 
 
         <!-- ИГРОКИ -->
@@ -267,6 +288,7 @@
 
 
         <div id="playersContainer"></div>
+
 
 
         <!-- НОЧНЫЕ ДЕЙСТВИЯ -->
@@ -282,6 +304,7 @@
         ></div>
 
 
+
         <!-- ГОЛОСОВАНИЕ -->
 
         <div class="section-title">
@@ -295,6 +318,7 @@
         ></div>
 
 
+
         <!-- ИСТОРИЯ -->
 
         <div class="section-title">
@@ -303,6 +327,7 @@
 
 
         <div id="eventsContainer"></div>
+
 
 
         <!-- ВЗАИМОДЕЙСТВИЯ -->
@@ -315,6 +340,7 @@
         <button
             id="btnAddInteraction"
             class="secondary full"
+            type="button"
         >
             + Добавить взаимодействие
         </button>
@@ -323,11 +349,13 @@
         <div id="interactionStats"></div>
 
 
+
         <!-- ЗАВЕРШЕНИЕ -->
 
         <button
             id="btnEndGame"
             class="danger full finish"
+            type="button"
         >
             Завершить игру
         </button>
@@ -335,8 +363,9 @@
     </section>
 
 
+
     <!-- =====================================================
-         РЕЗУЛЬТАТЫ
+         ЭКРАН РЕЗУЛЬТАТОВ
     ====================================================== -->
 
     <section
@@ -372,11 +401,13 @@
         <button
             id="btnNewGame"
             class="primary full"
+            type="button"
         >
             Новая игра
         </button>
 
     </section>
+
 
 
     <!-- =====================================================
@@ -414,6 +445,7 @@
     </div>
 
 
+
     <!-- =====================================================
          МОДАЛЬНОЕ ОКНО ИГРОКА
     ====================================================== -->
@@ -439,6 +471,7 @@
                 id="playerNameInput"
                 maxlength="40"
                 type="text"
+                autocomplete="off"
             >
 
 
@@ -455,6 +488,7 @@
                 <button
                     id="btnCancelPlayer"
                     class="secondary"
+                    type="button"
                 >
                     Отмена
                 </button>
@@ -463,6 +497,7 @@
                 <button
                     id="btnSavePlayer"
                     class="primary"
+                    type="button"
                 >
                     Сохранить
                 </button>
@@ -473,74 +508,6 @@
 
     </div>
 
-
-    <!-- =====================================================
-         МОДАЛЬНОЕ ОКНО НОЧНОГО ДЕЙСТВИЯ
-    ====================================================== -->
-
-    <div
-        id="nightModal"
-        class="modal"
-    >
-
-        <div class="modal-card">
-
-            <div
-                id="nightModalTitle"
-                class="modal-title"
-            >
-                Ночное действие
-            </div>
-
-
-            <div
-                id="nightModalHint"
-                class="modal-hint"
-            ></div>
-
-
-            <label>
-                Кто действует?
-            </label>
-
-
-            <select
-                id="nightActorSelect"
-            ></select>
-
-
-            <label>
-                Цель
-            </label>
-
-
-            <select
-                id="nightTargetSelect"
-            ></select>
-
-
-            <div class="modal-buttons">
-
-                <button
-                    id="btnCancelNight"
-                    class="secondary"
-                >
-                    Отмена
-                </button>
-
-
-                <button
-                    id="btnSaveNight"
-                    class="primary"
-                >
-                    Подтвердить
-                </button>
-
-            </div>
-
-        </div>
-
-    </div>
 
 
     <!-- =====================================================
@@ -559,14 +526,20 @@
             </div>
 
 
+            <div class="modal-hint">
+                Выберите голосующего и игрока,
+                за которого он отдаёт голос.
+                В итогах отображается только количество
+                голосов за каждого игрока.
+            </div>
+
+
             <label>
                 Кто голосует?
             </label>
 
 
-            <select
-                id="voterSelect"
-            ></select>
+            <select id="voterSelect"></select>
 
 
             <label>
@@ -574,9 +547,7 @@
             </label>
 
 
-            <select
-                id="candidateSelect"
-            ></select>
+            <select id="candidateSelect"></select>
 
 
             <div class="modal-buttons">
@@ -584,6 +555,7 @@
                 <button
                     id="btnCancelVote"
                     class="secondary"
+                    type="button"
                 >
                     Отмена
                 </button>
@@ -592,6 +564,7 @@
                 <button
                     id="btnSaveVote"
                     class="primary"
+                    type="button"
                 >
                     Засчитать голос
                 </button>
@@ -601,6 +574,7 @@
         </div>
 
     </div>
+
 
 
     <!-- =====================================================
@@ -624,9 +598,7 @@
             </label>
 
 
-            <select
-                id="interactionActor"
-            ></select>
+            <select id="interactionActor"></select>
 
 
             <label>
@@ -634,9 +606,7 @@
             </label>
 
 
-            <select
-                id="interactionTarget"
-            ></select>
+            <select id="interactionTarget"></select>
 
 
             <label>
@@ -649,6 +619,7 @@
                 maxlength="120"
                 type="text"
                 placeholder="Например: подозрение"
+                autocomplete="off"
             >
 
 
@@ -657,6 +628,7 @@
                 <button
                     id="btnCancelInteraction"
                     class="secondary"
+                    type="button"
                 >
                     Отмена
                 </button>
@@ -665,6 +637,7 @@
                 <button
                     id="btnSaveInteraction"
                     class="primary"
+                    type="button"
                 >
                     Сохранить
                 </button>
@@ -674,6 +647,7 @@
         </div>
 
     </div>
+
 
 
     <!-- =====================================================
@@ -733,8 +707,9 @@
                 <button
                     id="btnCloseMenu"
                     class="primary"
+                    type="button"
                 >
-                    Закрыть
+                    Сохранить
                 </button>
 
             </div>
